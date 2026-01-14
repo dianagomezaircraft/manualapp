@@ -56,7 +56,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
     if (result['success']) {
       // Get user name from response
-      final userName = result['data']['user']['name'] ?? 'User';
+      final userName = result['data']['user']['firstName'] ?? 'User';
 
       // Navigate to CategoryScreen
       Navigator.pushReplacement(
@@ -99,11 +99,15 @@ class _LoginScreenState extends State<LoginScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   // Logo
-                  SvgPicture.asset(
+                  /*SvgPicture.asset(
                     'assets/logoARTSWhite.svg',
-                    fit: BoxFit.cover,
                     width: 140,
                     height: 40,
+                  ),*/
+                  Image.asset(
+                    'assets/logoWhite.png',
+                    width: 160,
+                    height: 195,
                   ),
                   const SizedBox(height: 16),
                   const Text(

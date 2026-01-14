@@ -24,6 +24,12 @@ dev_dependencies:
 flutter:
   uses-material-design: true
 
+  assets:
+    - assets/background.png
+    - assets/logoARTSWhite.svg
+    - assets/logoWhite.png
+    - assets/logoBlue.png
+
   fonts:
     - family: Inter
       fonts:
@@ -32,10 +38,7 @@ flutter:
           weight: 700
         - asset: fonts/Inter_24pt-SemiBold.ttf
           weight: 600
-  # Add your background image here
-  assets:
-    - assets/background.png
-    - assets/logoARTSWhite.svg
+
   
   # You can add custom fonts if needed
   # fonts:

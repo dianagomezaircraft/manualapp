@@ -85,13 +85,13 @@ class _SplashScreenState extends State<SplashScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(
-                Icons.flight,
-                size: 80,
-                color: Colors.white,
+              Image.asset(
+                'assets/logoWhite.png',
+                width: 160,
+                height: 195,
               ),
               const SizedBox(height: 16),
-              const Text(
+              /*const Text(
                 'ARTS Claims',
                 style: TextStyle(
                   color: Colors.white,
@@ -99,7 +99,7 @@ class _SplashScreenState extends State<SplashScreen> {
                   fontWeight: FontWeight.bold,
                   fontFamily: 'Inter',
                 ),
-              ),
+              ),*/
             ],
           ),
         ),

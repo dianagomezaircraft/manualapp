@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
+import '../services/chapters_service.dart';
 
-// Import the new screens
+// Import the screens
 import 'search_screen.dart';
 import 'chapter_detail_screen.dart';
-import 'section_detail_screen.dart';
 import 'contact_details_screen.dart';
 import 'login_screen.dart';
 
@@ -25,6 +25,49 @@ class _CategoryScreenState extends State<CategoryScreen> {
   int selectedBottomIndex = 2; // ARTS logo selected by default
 
   final AuthService _authService = AuthService();
+  final ChaptersService _chaptersService = ChaptersService();
+
+  List<Chapter> chapters = [];
+  bool isLoading = true;
+  String? errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadChapters();
+  }
+
+  Future<void> _loadChapters() async {
+    setState(() {
+      isLoading = true;
+      errorMessage = null;
+    });
+
+    final result = await _chaptersService.getChapters();
+
+    if (!mounted) return;
+
+    if (result['success'] == true) {
+      final chaptersData = result['data'] as List<dynamic>;
+      setState(() {
+        chapters = chaptersData
+            .map((json) => Chapter.fromJson(json))
+            .toList()
+          ..sort((a, b) => a.order.compareTo(b.order)); // Sort by order
+        isLoading = false;
+      });
+    } else {
+      setState(() {
+        errorMessage = result['error'] ?? 'Failed to load chapters';
+        isLoading = false;
+      });
+
+      // If authentication failed, redirect to login
+      if (result['needsLogin'] == true) {
+        _handleLogout();
+      }
+    }
+  }
 
   Future<void> _handleLogout() async {
     await _authService.logout();
@@ -38,29 +81,6 @@ class _CategoryScreenState extends State<CategoryScreen> {
       ),
     );
   }
-
-  final List<Map<String, String>> categories = [
-    {
-      'title': 'Introduction',
-      'subtitle': 'Overview of roles, responsibilities, and how to use this manual.',
-      'chapterNumber': 'CHAPTER 1',
-    },
-    {
-      'title': 'Notification of Loss',
-      'subtitle': 'When and how to notify, plus the minimum information required.',
-      'chapterNumber': 'CHAPTER 2',
-    },
-    {
-      'title': 'Major Loss',
-      'subtitle': 'Critical actions and escalation steps for catastrophic events.',
-      'chapterNumber': 'CHAPTER 3',
-    },
-    {
-      'title': 'Provision of Information',
-      'subtitle': 'What documents and evidence to gather, and when to submit them.',
-      'chapterNumber': 'CHAPTER 4',
-    },
-  ];
 
   @override
   Widget build(BuildContext context) {
@@ -98,19 +118,7 @@ class _CategoryScreenState extends State<CategoryScreen> {
 
                     // Description
                     const Text(
-                      'Access the key steps and contacts you need for your situation.',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 14,
-                        fontFamily: 'Inter',
-                        height: 1.4,
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    // Description2
-                    const Text(
-                      'Choose the category that best describes what happened.',
+                      'Access the loss prevention measures and the key steps and contacts you would need in the event of a  loss.',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         color: Colors.white,
@@ -135,9 +143,9 @@ class _CategoryScreenState extends State<CategoryScreen> {
                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         children: [
                           _buildStarRating(1, 'Incident'),
-                          _buildStarRating(2, 'Major Loss'),
-                          _buildStarRating(3, 'Injuries'),
-                          _buildStarRating(4, 'Liability'),
+                          _buildStarRating(1, 'Major Loss'),
+                          _buildStarRating(1, 'Injuries'),
+                          _buildStarRating(1, 'Liability'),
                         ],
                       ),
                     ),
@@ -159,21 +167,7 @@ class _CategoryScreenState extends State<CategoryScreen> {
                     children: [
                       const SizedBox(height: 24),
                       Expanded(
-                        child: ListView.builder(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 8,
-                          ),
-                          itemCount: categories.length,
-                          itemBuilder: (context, index) {
-                            return _buildCategoryCard(
-                              categories[index]['title']!,
-                              categories[index]['subtitle']!,
-                              categories[index]['chapterNumber']!,
-                              index,
-                            );
-                          },
-                        ),
+                        child: _buildChaptersList(),
                       ),
                     ],
                   ),
@@ -184,6 +178,107 @@ class _CategoryScreenState extends State<CategoryScreen> {
         ),
       ),
       bottomNavigationBar: _buildBottomNavigationBar(),
+    );
+  }
+
+  Widget _buildChaptersList() {
+    if (isLoading) {
+      return const Center(
+        child: CircularProgressIndicator(
+          color: Color(0xFF123157),
+        ),
+      );
+    }
+
+    if (errorMessage != null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(20.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.error_outline,
+                size: 64,
+                color: Colors.grey[400],
+              ),
+              const SizedBox(height: 16),
+              Text(
+                errorMessage!,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Colors.grey[600],
+                  fontFamily: 'Inter',
+                ),
+              ),
+              const SizedBox(height: 24),
+              ElevatedButton.icon(
+                onPressed: _loadChapters,
+                icon: const Icon(Icons.refresh),
+                label: const Text('Retry'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF123157),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 12,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (chapters.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(20.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.folder_open,
+                size: 64,
+                color: Colors.grey[400],
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'No chapters available',
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Colors.grey[600],
+                  fontFamily: 'Inter',
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return RefreshIndicator(
+      onRefresh: _loadChapters,
+      color: const Color(0xFF123157),
+      child: ListView.builder(
+        padding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 8,
+        ),
+        itemCount: chapters.length,
+        itemBuilder: (context, index) {
+          final chapter = chapters[index];
+          return _buildCategoryCard(
+            chapter.title,
+            chapter.description,
+            'CHAPTER ${chapter.chapterNumber+1}',
+            chapter.id,
+            index,
+          );
+        },
+      ),
     );
   }
 
@@ -223,7 +318,13 @@ class _CategoryScreenState extends State<CategoryScreen> {
     );
   }
 
-  Widget _buildCategoryCard(String title, String subtitle, String chapterNumber, int index) {
+  Widget _buildCategoryCard(
+      String title,
+      String subtitle,
+      String chapterNumber,
+      String chapterId,
+      int index,
+      ) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
@@ -246,13 +347,14 @@ class _CategoryScreenState extends State<CategoryScreen> {
         child: InkWell(
           borderRadius: BorderRadius.circular(12),
           onTap: () {
-            // Navigate to chapter detail screen
+            // Navigate to chapter detail screen with chapter ID
             Navigator.push(
               context,
               MaterialPageRoute(
                 builder: (context) => ChapterDetailScreen(
                   chapterTitle: title,
                   chapterNumber: chapterNumber,
+                  chapterId: chapterId,
                 ),
               ),
             );
@@ -262,14 +364,29 @@ class _CategoryScreenState extends State<CategoryScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    fontFamily: 'Inter',
-                    color: Colors.black87,
-                  ),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        title,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          fontFamily: 'Inter',
+                          color: Colors.black87,
+                        ),
+                      ),
+                    ),
+                    Text(
+                      chapterNumber,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        fontFamily: 'Inter',
+                        color: Colors.grey[500],
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 8),
                 Text(
@@ -399,20 +516,11 @@ class _CategoryScreenState extends State<CategoryScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              Icons.flight,
-              color: isSelected ? const Color(0xFF123157) : Colors.grey,
-              size: 24,
-            ),
             const SizedBox(height: 2),
-            Text(
-              'ARTS',
-              style: TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.bold,
-                fontFamily: 'Inter',
-                color: isSelected ? const Color(0xFF123157) : Colors.grey,
-              ),
+            Image.asset(
+              'assets/logoBlue.png',
+              width: 73,
+              height: 72,
             ),
           ],
         ),

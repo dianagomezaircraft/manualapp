@@ -326,20 +326,11 @@ class _ContactDetailsScreenState extends State<ContactDetailsScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              Icons.flight,
-              color: isSelected ? const Color(0xFF123157) : Colors.grey,
-              size: 24,
-            ),
             const SizedBox(height: 2),
-            Text(
-              'ARTS',
-              style: TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.bold,
-                fontFamily: 'Inter',
-                color: isSelected ? const Color(0xFF123157) : Colors.grey,
-              ),
+            Image.asset(
+              'assets/logoBlue.png',
+              width: 73,
+              height: 72,
             ),
           ],
         ),
