@@ -273,7 +273,7 @@ class _CategoryScreenState extends State<CategoryScreen> {
           return _buildCategoryCard(
             chapter.title,
             chapter.description,
-            'CHAPTER ${chapter.chapterNumber+1}',
+            'CHAPTER ${chapter.order}',
             chapter.id,
             index,
           );
