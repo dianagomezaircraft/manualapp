@@ -3,6 +3,7 @@ import '../services/search_service.dart';
 import '../services/auth_service.dart';
 import 'chapter_detail_screen.dart';
 import 'login_screen.dart';
+import '../widgets/app_bottom_navigation.dart';
 
 class SearchScreen extends StatefulWidget {
   const SearchScreen({super.key});
@@ -226,7 +227,7 @@ class _SearchScreenState extends State<SearchScreen> {
           ],
         ),
       ),
-      bottomNavigationBar: _buildBottomNavigationBar(),
+      bottomNavigationBar: const AppBottomNavigation(selectedIndex: 1),
     );
   }
 
@@ -557,83 +558,4 @@ class _SearchScreenState extends State<SearchScreen> {
     return spans;
   }
 
-  Widget _buildBottomNavigationBar() {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 8,
-            offset: const Offset(0, -2),
-          ),
-        ],
-      ),
-      child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _buildBottomNavItem(Icons.home_outlined, 0),
-              _buildBottomNavItem(Icons.search, 1),
-              _buildBottomNavItemARTS(2),
-              _buildBottomNavItem(Icons.phone_outlined, 3),
-              _buildBottomNavItem(Icons.more_horiz, 4),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildBottomNavItem(IconData icon, int index) {
-    final isSelected = selectedBottomIndex == index;
-
-    return InkWell(
-      onTap: () {
-        if (index == 0) {
-          Navigator.pop(context);
-        } else if (index == 1) {
-          // Already on search screen
-        } else {
-          setState(() {
-            selectedBottomIndex = index;
-          });
-        }
-      },
-      borderRadius: BorderRadius.circular(8),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Icon(
-          icon,
-          color: isSelected ? const Color(0xFF123157) : Colors.grey,
-          size: 26,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildBottomNavItemARTS(int index) {
-    return InkWell(
-      onTap: () {
-        Navigator.pop(context); // Go back to home
-      },
-      borderRadius: BorderRadius.circular(8),
-      child: Padding(
-        padding: const EdgeInsets.all(8),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const SizedBox(height: 2),
-            Image.asset(
-              'assets/logoBlue.png',
-              width: 73,
-              height: 72,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 }

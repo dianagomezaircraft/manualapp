@@ -4,6 +4,8 @@ import 'package:url_launcher/url_launcher.dart';
 import '../services/contacts_service.dart';
 import '../services/auth_service.dart';
 import 'login_screen.dart';
+import 'about_us_screen.dart';
+import '../widgets/app_bottom_navigation.dart';
 
 class ContactDetailsScreen extends StatefulWidget {
   const ContactDetailsScreen({super.key});
@@ -94,7 +96,7 @@ class _ContactDetailsScreenState extends State<ContactDetailsScreen> {
         ),
       ),
       body: _buildBody(),
-      bottomNavigationBar: _buildBottomNavigationBar(),
+      bottomNavigationBar: const AppBottomNavigation(selectedIndex: 3),
     );
   }
 
@@ -212,7 +214,8 @@ class _ContactDetailsScreenState extends State<ContactDetailsScreen> {
                   color: Colors.grey[800],
                 ),
               ),
-              if (group.description != null && group.description!.isNotEmpty) ...[
+              if (group.description != null &&
+                  group.description!.isNotEmpty) ...[
                 const SizedBox(height: 4),
                 Text(
                   group.description!,
@@ -229,7 +232,7 @@ class _ContactDetailsScreenState extends State<ContactDetailsScreen> {
 
         // Contacts in this group
         ...group.contacts.map((contact) => _buildContactCard(contact)),
-        
+
         const SizedBox(height: 16),
       ],
     );
@@ -261,9 +264,10 @@ class _ContactDetailsScreenState extends State<ContactDetailsScreen> {
               CircleAvatar(
                 radius: 24,
                 backgroundColor: const Color(0xFF123157),
-                backgroundImage: contact.avatar != null && contact.avatar!.isNotEmpty
-                    ? NetworkImage(contact.avatar!)
-                    : null,
+                backgroundImage:
+                    contact.avatar != null && contact.avatar!.isNotEmpty
+                        ? NetworkImage(contact.avatar!)
+                        : null,
                 child: contact.avatar == null || contact.avatar!.isEmpty
                     ? Text(
                         _getInitials(contact.firstName, contact.lastName),
@@ -312,10 +316,22 @@ class _ContactDetailsScreenState extends State<ContactDetailsScreen> {
                         ),
                       ),
                     ],
-                    if (contact.timezone != null && contact.timezone!.isNotEmpty) ...[
+                    if (contact.timezone != null &&
+                        contact.timezone!.isNotEmpty) ...[
                       const SizedBox(height: 2),
                       Text(
                         'Time zone ${contact.timezone}',
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontFamily: 'Inter',
+                          color: Colors.grey[400],
+                        ),
+                      ),
+                    ],
+                    if (contact.email != null && contact.email!.isNotEmpty) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        '${contact.email}',
                         style: TextStyle(
                           fontSize: 10,
                           fontFamily: 'Inter',
@@ -328,22 +344,13 @@ class _ContactDetailsScreenState extends State<ContactDetailsScreen> {
               ),
             ],
           ),
-          
+
           // Contact Actions (only show if phone or email exists)
           if ((contact.phone != null && contact.phone!.isNotEmpty) ||
               (contact.email != null && contact.email!.isNotEmpty)) ...[
             const SizedBox(height: 16),
             Row(
               children: [
-                if (contact.phone != null && contact.phone!.isNotEmpty)
-                  Expanded(
-                    child: _buildActionButton(
-                      icon: Icons.phone,
-                      label: 'Free call',
-                      info: contact.phone!,
-                      onTap: () => _makePhoneCall(contact.phone!),
-                    ),
-                  ),
                 if (contact.phone != null &&
                     contact.phone!.isNotEmpty &&
                     contact.email != null &&
@@ -356,6 +363,17 @@ class _ContactDetailsScreenState extends State<ContactDetailsScreen> {
                       label: 'Email',
                       info: contact.email!,
                       onTap: () => _sendEmail(contact.email!),
+                    ),
+                  ),
+                if (contact.phone != null && contact.phone!.isNotEmpty)
+                  Expanded(
+                    child: _buildActionButton(
+                      icon: Icons.phone,
+                      label: 'Contact',
+                      onTap: () => (),
+
+                      // info: contact.phone!,
+                      // onTap: () => _makePhoneCall(contact.phone!),
                     ),
                   ),
               ],
@@ -376,7 +394,7 @@ class _ContactDetailsScreenState extends State<ContactDetailsScreen> {
   Widget _buildActionButton({
     required IconData icon,
     required String label,
-    required String info,
+    String? info,
     required VoidCallback onTap,
   }) {
     return InkWell(
@@ -390,6 +408,7 @@ class _ContactDetailsScreenState extends State<ContactDetailsScreen> {
           border: Border.all(color: Colors.grey.shade200),
         ),
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
             Icon(icon, color: const Color(0xFF123157), size: 20),
             const SizedBox(height: 4),
@@ -402,17 +421,19 @@ class _ContactDetailsScreenState extends State<ContactDetailsScreen> {
                 color: Color(0xFF123157),
               ),
             ),
-            const SizedBox(height: 2),
-            Text(
-              info,
-              style: TextStyle(
-                fontSize: 10,
-                fontFamily: 'Inter',
-                color: Colors.grey[600],
+            if (info != null && info!.isNotEmpty) ...[
+              const SizedBox(height: 2),
+              Text(
+                info!,
+                style: TextStyle(
+                  fontSize: 10,
+                  fontFamily: 'Inter',
+                  color: Colors.grey[600],
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
+            ],
           ],
         ),
       ),
@@ -439,87 +460,5 @@ class _ContactDetailsScreenState extends State<ContactDetailsScreen> {
     }
   }
 
-  Widget _buildBottomNavigationBar() {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 8,
-            offset: const Offset(0, -2),
-          ),
-        ],
-      ),
-      child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _buildBottomNavItem(Icons.home_outlined, 0),
-              _buildBottomNavItem(Icons.search, 1),
-              _buildBottomNavItemARTS(2),
-              _buildBottomNavItem(Icons.phone_outlined, 3),
-              _buildBottomNavItem(Icons.more_horiz, 4),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildBottomNavItem(IconData icon, int index) {
-    final isSelected = selectedBottomIndex == index;
-
-    return InkWell(
-      onTap: () {
-        setState(() {
-          selectedBottomIndex = index;
-        });
-        if (index == 3) {
-          // Already on contact details
-        } else if (index == 0) {
-          Navigator.pop(context); // Go back to home
-        }
-      },
-      borderRadius: BorderRadius.circular(8),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Icon(
-          icon,
-          color: isSelected ? const Color(0xFF123157) : Colors.grey,
-          size: 26,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildBottomNavItemARTS(int index) {
-    final isSelected = selectedBottomIndex == index;
-
-    return InkWell(
-      onTap: () {
-        setState(() {
-          selectedBottomIndex = index;
-        });
-        Navigator.pop(context); // Go back to home (ARTS screen)
-      },
-      borderRadius: BorderRadius.circular(8),
-      child: Padding(
-        padding: const EdgeInsets.all(8),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const SizedBox(height: 2),
-            Image.asset(
-              'assets/logoBlue.png',
-              width: 73,
-              height: 72,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+  
 }

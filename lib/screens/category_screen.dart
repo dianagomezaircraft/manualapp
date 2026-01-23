@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
 import '../services/chapters_service.dart';
+import '../widgets/app_bottom_navigation.dart';
 
 // Import the screens
 import 'search_screen.dart';
@@ -50,9 +51,7 @@ class _CategoryScreenState extends State<CategoryScreen> {
     if (result['success'] == true) {
       final chaptersData = result['data'] as List<dynamic>;
       setState(() {
-        chapters = chaptersData
-            .map((json) => Chapter.fromJson(json))
-            .toList()
+        chapters = chaptersData.map((json) => Chapter.fromJson(json)).toList()
           ..sort((a, b) => a.order.compareTo(b.order)); // Sort by order
         isLoading = false;
       });
@@ -177,7 +176,7 @@ class _CategoryScreenState extends State<CategoryScreen> {
           ),
         ),
       ),
-      bottomNavigationBar: _buildBottomNavigationBar(),
+      bottomNavigationBar: const AppBottomNavigation(selectedIndex: 0),
     );
   }
 
@@ -319,12 +318,12 @@ class _CategoryScreenState extends State<CategoryScreen> {
   }
 
   Widget _buildCategoryCard(
-      String title,
-      String subtitle,
-      String chapterNumber,
-      String chapterId,
-      int index,
-      ) {
+    String title,
+    String subtitle,
+    String chapterNumber,
+    String chapterId,
+    int index,
+  ) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
@@ -401,128 +400,6 @@ class _CategoryScreenState extends State<CategoryScreen> {
               ],
             ),
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildBottomNavigationBar() {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 8,
-            offset: const Offset(0, -2),
-          ),
-        ],
-      ),
-      child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _buildBottomNavItem(Icons.home_outlined, 0, () {
-                // Home action - already on home
-              }),
-              _buildBottomNavItem(Icons.search, 1, () {
-                // Navigate to Search Screen
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const SearchScreen(),
-                  ),
-                );
-              }),
-              _buildBottomNavItemARTS(2, () {
-                // ARTS action - already on ARTS screen
-              }),
-              _buildBottomNavItem(Icons.phone_outlined, 3, () {
-                // Navigate to Contact Details Screen
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const ContactDetailsScreen(),
-                  ),
-                );
-              }),
-              _buildBottomNavItem(Icons.more_horiz, 4, () {
-                // More options action
-                showDialog(
-                  context: context,
-                  builder: (context) => AlertDialog(
-                    title: const Text('Logout'),
-                    content: const Text('Are you sure you want to logout?'),
-                    actions: [
-                      TextButton(
-                        onPressed: () => Navigator.pop(context),
-                        child: const Text('Cancel'),
-                      ),
-                      TextButton(
-                        onPressed: () {
-                          Navigator.pop(context);
-                          _handleLogout();
-                        },
-                        child: const Text('Logout'),
-                      ),
-                    ],
-                  ),
-                );
-              }),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildBottomNavItem(IconData icon, int index, VoidCallback onTap) {
-    final isSelected = selectedBottomIndex == index;
-
-    return InkWell(
-      onTap: () {
-        setState(() {
-          selectedBottomIndex = index;
-        });
-        onTap();
-      },
-      borderRadius: BorderRadius.circular(8),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Icon(
-          icon,
-          color: isSelected ? const Color(0xFF123157) : Colors.grey,
-          size: 26,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildBottomNavItemARTS(int index, VoidCallback onTap) {
-    final isSelected = selectedBottomIndex == index;
-
-    return InkWell(
-      onTap: () {
-        setState(() {
-          selectedBottomIndex = index;
-        });
-        onTap();
-      },
-      borderRadius: BorderRadius.circular(8),
-      child: Padding(
-        padding: const EdgeInsets.all(8),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const SizedBox(height: 2),
-            Image.asset(
-              'assets/logoBlue.png',
-              width: 73,
-              height: 72,
-            ),
-          ],
         ),
       ),
     );
