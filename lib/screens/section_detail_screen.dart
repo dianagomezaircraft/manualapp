@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_html/flutter_html.dart';
 import '../services/sections_service.dart';
-import '../services/content_service.dart';
+import '../services/content_service.dart' as content_service;
 import '../services/auth_service.dart';
 import 'login_screen.dart';
+import '../widgets/app_bottom_navigation.dart';
 
 class SectionDetailScreen extends StatefulWidget {
   final String? sectionId;
@@ -24,23 +26,33 @@ class _SectionDetailScreenState extends State<SectionDetailScreen> {
   int selectedBottomIndex = 2; // ARTS selected
 
   final SectionsService _sectionsService = SectionsService();
-  final ContentService _contentService = ContentService();
+  final content_service.ContentService _contentService = content_service.ContentService();
   final AuthService _authService = AuthService();
 
   Section? sectionDetails;
-  List<Content> contents = [];
+  List<content_service.Content> contents = [];
   bool isLoading = false;
   bool isLoadingContents = false;
   String? errorMessage;
   int currentPage = 0;
+  
+  // PageView controller
+  late PageController _pageController;
 
   @override
   void initState() {
     super.initState();
+    _pageController = PageController();
     if (widget.sectionId != null) {
       _loadSectionDetails();
       _loadContents();
     }
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadSectionDetails() async {
@@ -86,7 +98,7 @@ class _SectionDetailScreenState extends State<SectionDetailScreen> {
       final contentsData = result['data'] as List<dynamic>;
       setState(() {
         contents = contentsData
-            .map((json) => Content.fromJson(json))
+            .map((json) => content_service.Content.fromJson(json))
             .toList()
           ..sort((a, b) => a.order.compareTo(b.order)); // Sort by order
         isLoadingContents = false;
@@ -113,7 +125,7 @@ class _SectionDetailScreenState extends State<SectionDetailScreen> {
       MaterialPageRoute(
         builder: (context) => const LoginScreen(),
       ),
-          (route) => false,
+      (route) => false,
     );
   }
 
@@ -129,16 +141,16 @@ class _SectionDetailScreenState extends State<SectionDetailScreen> {
           onPressed: () => Navigator.pop(context),
         ),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.share, color: Colors.black87),
-            onPressed: () {
-              // Share functionality
-            },
-          ),
+          // IconButton(
+          //   icon: const Icon(Icons.share, color: Colors.black87),
+          //   onPressed: () {
+          //     // Share functionality
+          //   },
+          // ),
         ],
       ),
       body: _buildBody(),
-      bottomNavigationBar: _buildBottomNavigationBar(),
+      bottomNavigationBar: const AppBottomNavigation(selectedIndex: 0),
     );
   }
 
@@ -233,16 +245,68 @@ class _SectionDetailScreenState extends State<SectionDetailScreen> {
                 ),
                 const SizedBox(height: 24),
 
-                // Section content (if available)
+                // Section content (if available) - Now rendering HTML
                 if (sectionDetails?.content != null && sectionDetails!.content.isNotEmpty) ...[
-                  Text(
-                    sectionDetails!.content,
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontFamily: 'Inter',
-                      color: Colors.grey[800],
-                      height: 1.6,
-                    ),
+                  Html(
+                    data: sectionDetails!.content,
+                    style: {
+                      "body": Style(
+                        margin: Margins.zero,
+                        padding: HtmlPaddings.zero,
+                        fontSize: FontSize(14),
+                        fontFamily: 'Inter',
+                        color: Colors.grey[800],
+                        lineHeight: LineHeight(1.6),
+                      ),
+                      "p": Style(
+                        margin: Margins.only(bottom: 12),
+                        fontSize: FontSize(14),
+                        fontFamily: 'Inter',
+                        color: Colors.grey[800],
+                      ),
+                      "ul": Style(
+                        margin: Margins.only(bottom: 12, left: 8),
+                        padding: HtmlPaddings.only(left: 16),
+                      ),
+                      "ol": Style(
+                        margin: Margins.only(bottom: 12, left: 8),
+                        padding: HtmlPaddings.only(left: 16),
+                      ),
+                      "li": Style(
+                        margin: Margins.only(bottom: 8),
+                        fontSize: FontSize(14),
+                        fontFamily: 'Inter',
+                        color: Colors.grey[800],
+                      ),
+                      "h1": Style(
+                        fontSize: FontSize(20),
+                        fontWeight: FontWeight.bold,
+                        margin: Margins.only(bottom: 12, top: 8),
+                        color: Colors.black87,
+                      ),
+                      "h2": Style(
+                        fontSize: FontSize(18),
+                        fontWeight: FontWeight.bold,
+                        margin: Margins.only(bottom: 10, top: 8),
+                        color: Colors.black87,
+                      ),
+                      "h3": Style(
+                        fontSize: FontSize(16),
+                        fontWeight: FontWeight.bold,
+                        margin: Margins.only(bottom: 8, top: 6),
+                        color: Colors.black87,
+                      ),
+                      "strong": Style(
+                        fontWeight: FontWeight.bold,
+                      ),
+                      "em": Style(
+                        fontStyle: FontStyle.italic,
+                      ),
+                      "a": Style(
+                        color: const Color(0xFF123157),
+                        textDecoration: TextDecoration.underline,
+                      ),
+                    },
                   ),
                   const SizedBox(height: 24),
                 ],
@@ -258,17 +322,17 @@ class _SectionDetailScreenState extends State<SectionDetailScreen> {
                     ),
                   )
                 else if (contents.isNotEmpty)
-                  _buildContentsList()
+                  _buildContentsPageView()
                 else if (sectionDetails?.content == null || sectionDetails!.content.isEmpty)
-                    Text(
-                      'No additional content available for this section.',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontFamily: 'Inter',
-                        color: Colors.grey[600],
-                        fontStyle: FontStyle.italic,
-                      ),
+                  Text(
+                    'No additional content available for this section.',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontFamily: 'Inter',
+                      color: Colors.grey[600],
+                      fontStyle: FontStyle.italic,
                     ),
+                  ),
 
                 const SizedBox(height: 24),
 
@@ -285,11 +349,11 @@ class _SectionDetailScreenState extends State<SectionDetailScreen> {
   Widget _buildImageHeader() {
     // Check if any content has an image
     final imageContent = contents.firstWhere(
-          (c) => c.type == ContentType.IMAGE,
-      orElse: () => Content(
+      (c) => c.type == content_service.ContentType.IMAGE,
+      orElse: () => content_service.Content(
         id: '',
         title: '',
-        type: ContentType.TEXT,
+        type: content_service.ContentType.TEXT,
         content: '',
         order: 0,
         active: true,
@@ -346,10 +410,46 @@ class _SectionDetailScreenState extends State<SectionDetailScreen> {
     }
   }
 
+  Widget _buildContentsPageView() {
+    // Filter out images as they're shown in the header
+    final nonImageContents = contents
+        .where((c) => c.type != content_service.ContentType.IMAGE)
+        .toList();
+
+    if (nonImageContents.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    // If there's only one content, don't use PageView
+    if (nonImageContents.length == 1) {
+      return _buildContentItem(nonImageContents[0]);
+    }
+
+    // Multiple contents - use PageView
+    return SizedBox(
+      height: 500, // Adjust this height based on your content
+      child: PageView.builder(
+        controller: _pageController,
+        onPageChanged: (index) {
+          setState(() {
+            currentPage = index;
+          });
+        },
+        itemCount: nonImageContents.length,
+        itemBuilder: (context, index) {
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8.0),
+            child: _buildContentItem(nonImageContents[index]),
+          );
+        },
+      ),
+    );
+  }
+
   Widget _buildContentsList() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      children: contents.where((c) => c.type != ContentType.IMAGE).map((content) {
+      children: contents.where((c) => c.type != content_service.ContentType.IMAGE).map((content) {
         return Padding(
           padding: const EdgeInsets.only(bottom: 16.0),
           child: _buildContentItem(content),
@@ -358,9 +458,9 @@ class _SectionDetailScreenState extends State<SectionDetailScreen> {
     );
   }
 
-  Widget _buildContentItem(Content content) {
+  Widget _buildContentItem(content_service.Content content) {
     switch (content.type) {
-      case ContentType.TEXT:
+      case content_service.ContentType.TEXT:
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -376,20 +476,72 @@ class _SectionDetailScreenState extends State<SectionDetailScreen> {
               ),
               const SizedBox(height: 8),
             ],
-            Text(
-              content.content,
-              style: TextStyle(
-                fontSize: 14,
-                fontFamily: 'Inter',
-                color: Colors.grey[800],
-                height: 1.6,
-              ),
+            // Render HTML content
+            Html(
+              data: content.content,
+              style: {
+                "body": Style(
+                  margin: Margins.zero,
+                  padding: HtmlPaddings.zero,
+                  fontSize: FontSize(14),
+                  fontFamily: 'Inter',
+                  color: Colors.grey[800],
+                  lineHeight: LineHeight(1.6),
+                ),
+                "p": Style(
+                  margin: Margins.only(bottom: 12),
+                  fontSize: FontSize(14),
+                  fontFamily: 'Inter',
+                  color: Colors.grey[800],
+                ),
+                "ul": Style(
+                  margin: Margins.only(bottom: 12, left: 8),
+                  padding: HtmlPaddings.only(left: 16),
+                ),
+                "ol": Style(
+                  margin: Margins.only(bottom: 12, left: 8),
+                  padding: HtmlPaddings.only(left: 16),
+                ),
+                "li": Style(
+                  margin: Margins.only(bottom: 8),
+                  fontSize: FontSize(14),
+                  fontFamily: 'Inter',
+                  color: Colors.grey[800],
+                ),
+                "h1": Style(
+                  fontSize: FontSize(20),
+                  fontWeight: FontWeight.bold,
+                  margin: Margins.only(bottom: 12, top: 8),
+                  color: Colors.black87,
+                ),
+                "h2": Style(
+                  fontSize: FontSize(18),
+                  fontWeight: FontWeight.bold,
+                  margin: Margins.only(bottom: 10, top: 8),
+                  color: Colors.black87,
+                ),
+                "h3": Style(
+                  fontSize: FontSize(16),
+                  fontWeight: FontWeight.bold,
+                  margin: Margins.only(bottom: 8, top: 6),
+                  color: Colors.black87,
+                ),
+                "strong": Style(
+                  fontWeight: FontWeight.bold,
+                ),
+                "em": Style(
+                  fontStyle: FontStyle.italic,
+                ),
+                "a": Style(
+                  color: const Color(0xFF123157),
+                  textDecoration: TextDecoration.underline,
+                ),
+              },
             ),
           ],
         );
 
-
-      case ContentType.VIDEO:
+      case content_service.ContentType.VIDEO:
         return Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
@@ -439,8 +591,6 @@ class _SectionDetailScreenState extends State<SectionDetailScreen> {
           ),
         );
 
-
-
       default:
         return const SizedBox.shrink();
     }
@@ -454,7 +604,7 @@ class _SectionDetailScreenState extends State<SectionDetailScreen> {
       mainAxisAlignment: MainAxisAlignment.center,
       children: List.generate(
         dotCount > 5 ? 5 : dotCount, // Max 5 dots
-            (index) => Padding(
+        (index) => Padding(
           padding: const EdgeInsets.symmetric(horizontal: 4),
           child: _buildDot(currentPage == index),
         ),
@@ -469,93 +619,6 @@ class _SectionDetailScreenState extends State<SectionDetailScreen> {
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         color: isActive ? const Color(0xFF123157) : Colors.grey[300],
-      ),
-    );
-  }
-
-  Widget _buildBottomNavigationBar() {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 8,
-            offset: const Offset(0, -2),
-          ),
-        ],
-      ),
-      child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _buildBottomNavItem(Icons.home_outlined, 0),
-              _buildBottomNavItem(Icons.search, 1),
-              _buildBottomNavItemARTS(2),
-              _buildBottomNavItem(Icons.phone_outlined, 3),
-              _buildBottomNavItem(Icons.more_horiz, 4),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildBottomNavItem(IconData icon, int index) {
-    final isSelected = selectedBottomIndex == index;
-
-    return InkWell(
-      onTap: () {
-        setState(() {
-          selectedBottomIndex = index;
-        });
-      },
-      borderRadius: BorderRadius.circular(8),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Icon(
-          icon,
-          color: isSelected ? const Color(0xFF123157) : Colors.grey,
-          size: 26,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildBottomNavItemARTS(int index) {
-    final isSelected = selectedBottomIndex == index;
-
-    return InkWell(
-      onTap: () {
-        setState(() {
-          selectedBottomIndex = index;
-        });
-      },
-      borderRadius: BorderRadius.circular(8),
-      child: Padding(
-        padding: const EdgeInsets.all(8),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.flight,
-              color: isSelected ? const Color(0xFF123157) : Colors.grey,
-              size: 24,
-            ),
-            const SizedBox(height: 2),
-            Text(
-              'ARTS',
-              style: TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.bold,
-                fontFamily: 'Inter',
-                color: isSelected ? const Color(0xFF123157) : Colors.grey,
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }

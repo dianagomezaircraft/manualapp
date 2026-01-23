@@ -8,6 +8,7 @@ import 'search_screen.dart';
 import 'chapter_detail_screen.dart';
 import 'contact_details_screen.dart';
 import 'login_screen.dart';
+import 'section_detail_screen.dart';
 
 class CategoryScreen extends StatefulWidget {
   final String userName;
@@ -44,25 +45,57 @@ class _CategoryScreenState extends State<CategoryScreen> {
       errorMessage = null;
     });
 
-    final result = await _chaptersService.getChapters();
+    try {
+      // Obtener los datos del usuario para extraer el airlineId
+      final userData = await _authService.getUserData();
 
-    if (!mounted) return;
+      if (userData == null) {
+        throw Exception('User not authenticated');
+      }
 
-    if (result['success'] == true) {
-      final chaptersData = result['data'] as List<dynamic>;
+      // Obtener el airlineId del usuario
+      final airlineId = userData['airlineId'];
+      if (airlineId == null) {
+        throw Exception('User has no airline assigned');
+      }
+
+      // Llamar al servicio solo con el airlineId
+      // El servicio maneja el token internamente
+      final result = await _chaptersService.getChapters(
+        airlineId: airlineId,
+      );
+
+      if (!mounted) return;
+
+      if (result['success'] == true) {
+        final chaptersData = result['data'] as List<dynamic>;
+        setState(() {
+          chapters = chaptersData.map((json) => Chapter.fromJson(json)).toList()
+            ..sort((a, b) => a.order.compareTo(b.order)); // Sort by order
+          isLoading = false;
+        });
+      } else {
+        setState(() {
+          errorMessage = result['error'] ?? 'Failed to load chapters';
+          isLoading = false;
+        });
+
+        // If authentication failed, redirect to login
+        if (result['needsLogin'] == true) {
+          _handleLogout();
+        }
+      }
+    } catch (e) {
+      if (!mounted) return;
+
       setState(() {
-        chapters = chaptersData.map((json) => Chapter.fromJson(json)).toList()
-          ..sort((a, b) => a.order.compareTo(b.order)); // Sort by order
+        errorMessage = e.toString();
         isLoading = false;
       });
-    } else {
-      setState(() {
-        errorMessage = result['error'] ?? 'Failed to load chapters';
-        isLoading = false;
-      });
 
-      // If authentication failed, redirect to login
-      if (result['needsLogin'] == true) {
+      // Si hay error de autenticación, redirigir al login
+      if (e.toString().contains('not authenticated') ||
+          e.toString().contains('no airline assigned')) {
         _handleLogout();
       }
     }
@@ -79,6 +112,89 @@ class _CategoryScreenState extends State<CategoryScreen> {
         builder: (context) => const LoginScreen(),
       ),
     );
+  }
+
+  Future<void> _handleChapterTap(
+      String chapterId, String title, String chapterNumber) async {
+    // Mostrar un indicador de carga
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: CircularProgressIndicator(
+          color: Color(0xFF123157),
+        ),
+      ),
+    );
+
+    try {
+      // Obtener los detalles del capítulo
+      final result = await _chaptersService.getChapterById(chapterId);
+
+      if (!mounted) return;
+
+      // Cerrar el indicador de carga
+      Navigator.pop(context);
+
+      if (result['success'] == true) {
+        final chapterData = Chapter.fromJson(result['data']);
+
+        // Verificar si sections no es nulo y tiene solo 1 sección
+        if (chapterData.sections != null &&
+            chapterData.sections!.isNotEmpty &&
+            chapterData.sections!.length == 1) {
+          // Ir directamente al detalle de la sección
+          final section = chapterData.sections!.first;
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => SectionDetailScreen(
+                sectionId: section.id,
+                title: section.title,
+                subtitle: section.subtitle,
+              ),
+            ),
+          );
+        } else {
+          // Ir a la pantalla de capítulo (comportamiento normal)
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => ChapterDetailScreen(
+                chapterTitle: title,
+                chapterNumber: chapterNumber,
+                chapterId: chapterId,
+              ),
+            ),
+          );
+        }
+      } else {
+        // Manejar error
+        if (result['needsLogin'] == true) {
+          _handleLogout();
+        } else {
+          // Mostrar mensaje de error
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(result['error'] ?? 'Error loading chapter'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (!mounted) return;
+
+      // Cerrar el indicador de carga si sigue abierto
+      Navigator.pop(context);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   @override
@@ -345,19 +461,7 @@ class _CategoryScreenState extends State<CategoryScreen> {
         color: Colors.transparent,
         child: InkWell(
           borderRadius: BorderRadius.circular(12),
-          onTap: () {
-            // Navigate to chapter detail screen with chapter ID
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => ChapterDetailScreen(
-                  chapterTitle: title,
-                  chapterNumber: chapterNumber,
-                  chapterId: chapterId,
-                ),
-              ),
-            );
-          },
+          onTap: () => _handleChapterTap(chapterId, title, chapterNumber),
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Column(

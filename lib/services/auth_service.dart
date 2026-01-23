@@ -1,16 +1,15 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import '../config/api_config.dart';
 
 class AuthService {
-  //static const String baseUrl = 'https://admin-webapp-backend.onrender.com/api';
-  static const String baseUrl = 'http://localhost:3001/api';
 
   // Login
   Future<Map<String, dynamic>> login(String email, String password) async {
     try {
       final response = await http.post(
-        Uri.parse('$baseUrl/auth/login'),
+        Uri.parse('${ApiConfig.baseUrl}/auth/login'),
         headers: {
           'Content-Type': 'application/json',
         },
@@ -169,7 +168,7 @@ class AuthService {
       }
 
       final response = await http.post(
-        Uri.parse('$baseUrl/auth/refresh'),
+        Uri.parse('${ApiConfig.baseUrl}/auth/refresh'),
         headers: {
           'Content-Type': 'application/json',
         },

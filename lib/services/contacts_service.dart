@@ -2,9 +2,9 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'auth_service.dart';
+import '../config/api_config.dart';
 
 class ContactsService {
-  final String baseUrl = 'http://localhost:3001/api'; // Change to your backend URL
   final AuthService _authService = AuthService();
 
   // Contact Group Model
@@ -35,8 +35,8 @@ class ContactsService {
       }
 
       final url = includeInactive 
-          ? '$baseUrl/contacts/groups?includeInactive=true'
-          : '$baseUrl/contacts/groups';
+          ? '${ApiConfig.baseUrl}/contacts/groups?includeInactive=true'
+          : '${ApiConfig.baseUrl}/contacts/groups';
 
       final response = await http.get(
         Uri.parse(url),
@@ -86,7 +86,7 @@ class ContactsService {
       }
 
       final response = await http.get(
-        Uri.parse('$baseUrl/contacts/$contactId'),
+        Uri.parse('${ApiConfig.baseUrl}/contacts/$contactId'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',

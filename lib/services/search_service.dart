@@ -2,9 +2,9 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'auth_service.dart';
+import '../config/api_config.dart';
 
 class SearchService {
-  final String baseUrl = 'http://localhost:3001/api'; // Change to your backend URL
   final AuthService _authService = AuthService();
 
   // Global search
@@ -25,7 +25,7 @@ class SearchService {
       }
 
       final url = Uri.parse(
-        '$baseUrl/search?q=${Uri.encodeComponent(query)}&limit=$limit&includeInactive=$includeInactive'
+        '${ApiConfig.baseUrl}/search?q=${Uri.encodeComponent(query)}&limit=$limit&includeInactive=$includeInactive'
       );
 
       final response = await http.get(
@@ -82,7 +82,7 @@ class SearchService {
       }
 
       final url = Uri.parse(
-        '$baseUrl/search/chapter/$chapterId?q=${Uri.encodeComponent(query)}'
+        '${ApiConfig.baseUrl}/search/chapter/$chapterId?q=${Uri.encodeComponent(query)}'
       );
 
       final response = await http.get(
