@@ -1,17 +1,17 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import '../config/api_config.dart';
 
 import '../models/airline.dart';
 
 class AirlineService {
-  static const String baseUrl = 'http://localhost:3001/api';
 
   Future<Airline> getAirlineById({
   required String airlineId,
   required String token,
 }) async {
   final response = await http.get(
-    Uri.parse('$baseUrl/airlines/$airlineId'),
+    Uri.parse('${ApiConfig.baseUrl}/airlines/$airlineId'),
     headers: {
       'Authorization': 'Bearer $token',
       'Content-Type': 'application/json',

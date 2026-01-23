@@ -4,6 +4,7 @@ import '../services/sections_service.dart';
 import '../services/auth_service.dart';
 import 'login_screen.dart';
 import 'section_detail_screen.dart';
+import '../widgets/app_bottom_navigation.dart';
 
 class ChapterDetailScreen extends StatefulWidget {
   final String chapterTitle;
@@ -96,6 +97,7 @@ class _ChapterDetailScreenState extends State<ChapterDetailScreen> {
           ],
         ),
       ),
+      bottomNavigationBar: const AppBottomNavigation(selectedIndex: 0),
     );
   }
 
@@ -117,28 +119,7 @@ class _ChapterDetailScreenState extends State<ChapterDetailScreen> {
           ),
           const SizedBox(height: 8),
 
-          // Search bar
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: TextField(
-              decoration: InputDecoration(
-                hintText: 'Search',
-                hintStyle: TextStyle(
-                  color: Colors.grey[400],
-                  fontFamily: 'Inter',
-                ),
-                prefixIcon: Icon(Icons.search, color: Colors.grey[400]),
-                border: InputBorder.none,
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 12,
-                ),
-              ),
-            ),
-          ),
+         
           const SizedBox(height: 16),
 
           // Chapter title

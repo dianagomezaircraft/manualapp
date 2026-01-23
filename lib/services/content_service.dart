@@ -1,10 +1,9 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'auth_service.dart';
+import '../config/api_config.dart';
 
 class ContentService {
-  static const String baseUrl = 'http://localhost:3001/api';
-  // static const String baseUrl = 'https://admin-webapp-backend.onrender.com/api';
 
   final AuthService _authService = AuthService();
 
@@ -22,7 +21,7 @@ class ContentService {
 
       // Fixed endpoint - removed duplicate 'contents'
       final response = await http.get(
-        Uri.parse('$baseUrl/contents/sections/$sectionId'),
+        Uri.parse('${ApiConfig.baseUrl}/contents/sections/$sectionId'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $accessToken',
@@ -89,7 +88,7 @@ class ContentService {
       }
 
       final response = await http.get(
-        Uri.parse('$baseUrl/contents/$contentId'),
+        Uri.parse('${ApiConfig.baseUrl}/contents/$contentId'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $accessToken',

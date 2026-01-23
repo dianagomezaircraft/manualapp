@@ -1,129 +1,178 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import '../services/auth_service.dart';
+import 'auth_service.dart';
 import 'sections_service.dart';
+import '../config/api_config.dart';
 
 class ChaptersService {
-  static const String baseUrl = 'http://localhost:3001/api';
+  
+  final AuthService _authService = AuthService();
 
-  final AuthService _auth = AuthService.instance;
-
-  /// Get all chapters
-  Future<Map<String, dynamic>> getChapters({
-    bool includeInactive = false,
-  }) async {
+  // Get all chapters
+  Future<Map<String, dynamic>> getChapters({String? airlineId, bool includeInactive = false}) async {
     try {
-      final token = _auth.token;
-      final airlineId = _auth.airlineId;
-
-      if (token == null || airlineId == null) {
+      final accessToken = await _authService.getAccessToken();
+      
+      if (accessToken == null) {
         return {
           'success': false,
-          'error': 'Missing auth or airline context',
+          'error': 'No access token available',
         };
       }
 
-      final uri = Uri.parse('$baseUrl/chapters').replace(
-        queryParameters: {
-          'airlineId': airlineId,
-          if (includeInactive) 'includeInactive': 'true',
-        },
-      );
+      // Build query parameters
+      final queryParams = <String, String>{};
+      if (airlineId != null) {
+        queryParams['airlineId'] = airlineId;
+      }
+      if (includeInactive) {
+        queryParams['includeInactive'] = 'true';
+      }
+
+      final uri = Uri.parse('${ApiConfig.baseUrl}/chapters').replace(queryParameters: queryParams);
 
       final response = await http.get(
         uri,
         headers: {
-          'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
+          'Authorization': 'Bearer $accessToken',
         },
       );
 
+      print('Get chapters status: ${response.statusCode}');
+      print('Get chapters body: ${response.body}');
+
       if (response.statusCode == 200) {
-        final body = jsonDecode(response.body);
-
-        return {
-          'success': true,
-          'data': body['data'],
-        };
-      }
-
-      if (response.statusCode == 401) {
-        final refreshed = await _auth.refreshAccessToken();
-        if (refreshed['success'] == true) {
-          return await getChapters(includeInactive: includeInactive);
+        final responseData = jsonDecode(response.body);
+        
+        if (responseData['success'] == true && responseData['data'] != null) {
+          return {
+            'success': true,
+            'data': responseData['data'],
+            'count': responseData['count'],
+          };
+        } else {
+          return {
+            'success': false,
+            'error': responseData['error'] ?? 'Failed to fetch chapters',
+          };
+        }
+      } else if (response.statusCode == 401) {
+        // Token might be expired, try to refresh
+        final refreshResult = await _authService.refreshAccessToken();
+        
+        if (refreshResult['success'] == true) {
+          // Retry the request with new token
+          return await getChapters(
+            airlineId: airlineId,
+            includeInactive: includeInactive,
+          );
+        } else {
+          return {
+            'success': false,
+            'error': 'Authentication failed',
+            'needsLogin': true,
+          };
+        }
+      } else {
+        try {
+          final error = jsonDecode(response.body);
+          return {
+            'success': false,
+            'error': error['error'] ?? error['message'] ?? 'Failed to fetch chapters',
+          };
+        } catch (e) {
+          return {
+            'success': false,
+            'error': 'Server error: ${response.statusCode}',
+          };
         }
       }
-
-      final error = jsonDecode(response.body);
-      return {
-        'success': false,
-        'error': error['error'] ?? error['message'],
-      };
     } catch (e) {
+      print('Get chapters error: $e');
       return {
         'success': false,
-        'error': e.toString(),
+        'error': 'Network error: ${e.toString()}',
       };
     }
   }
 
-  /// Get chapter by ID
+  // Get chapter by ID
   Future<Map<String, dynamic>> getChapterById(String chapterId) async {
     try {
-      final token = _auth.token;
-      final airlineId = _auth.airlineId;
-
-      if (token == null || airlineId == null) {
+      final accessToken = await _authService.getAccessToken();
+      
+      if (accessToken == null) {
         return {
           'success': false,
-          'error': 'Missing auth or airline context',
+          'error': 'No access token available',
         };
       }
-
-      final uri = Uri.parse('$baseUrl/chapters/$chapterId').replace(
-        queryParameters: {
-          'airlineId': airlineId,
-        },
-      );
 
       final response = await http.get(
-        uri,
+        Uri.parse('${ApiConfig.baseUrl}/chapters/$chapterId'),
         headers: {
-          'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
+          'Authorization': 'Bearer $accessToken',
         },
       );
 
-      if (response.statusCode == 200) {
-        final body = jsonDecode(response.body);
-        return {
-          'success': true,
-          'data': body['data'],
-        };
-      }
+      print('Get chapter by ID status: ${response.statusCode}');
+      print('Get chapter by ID body: ${response.body}');
 
-      if (response.statusCode == 401) {
-        final refreshed = await _auth.refreshAccessToken();
-        if (refreshed['success'] == true) {
+      if (response.statusCode == 200) {
+        final responseData = jsonDecode(response.body);
+        
+        if (responseData['success'] == true && responseData['data'] != null) {
+          return {
+            'success': true,
+            'data': responseData['data'],
+          };
+        } else {
+          return {
+            'success': false,
+            'error': responseData['error'] ?? 'Failed to fetch chapter',
+          };
+        }
+      } else if (response.statusCode == 401) {
+        // Token might be expired, try to refresh
+        final refreshResult = await _authService.refreshAccessToken();
+        
+        if (refreshResult['success'] == true) {
+          // Retry the request with new token
           return await getChapterById(chapterId);
+        } else {
+          return {
+            'success': false,
+            'error': 'Authentication failed',
+            'needsLogin': true,
+          };
+        }
+      } else {
+        try {
+          final error = jsonDecode(response.body);
+          return {
+            'success': false,
+            'error': error['error'] ?? error['message'] ?? 'Failed to fetch chapter',
+          };
+        } catch (e) {
+          return {
+            'success': false,
+            'error': 'Server error: ${response.statusCode}',
+          };
         }
       }
-
-      final error = jsonDecode(response.body);
-      return {
-        'success': false,
-        'error': error['error'] ?? error['message'],
-      };
     } catch (e) {
+      print('Get chapter by ID error: $e');
       return {
         'success': false,
-        'error': e.toString(),
+        'error': 'Network error: ${e.toString()}',
       };
     }
   }
 }
 
-// Chapter model class for easier data handling
+// Chapter model class
 class Chapter {
   final String id;
   final String title;
@@ -136,7 +185,7 @@ class Chapter {
   final DateTime updatedAt;
   final ChapterAirline? airline;
   final int sectionsCount;
-  final List<Section>? sections; // Add sections list
+  final List<Section>? sections;
 
   Chapter({
     required this.id,
@@ -157,10 +206,23 @@ class Chapter {
     // Parse sections if available
     List<Section>? sectionsList;
     if (json['sections'] != null && json['sections'] is List) {
-      sectionsList = (json['sections'] as List)
-          .map((sectionJson) => Section.fromJson(sectionJson))
-          .toList()
-        ..sort((a, b) => a.order.compareTo(b.order));
+      try {
+        sectionsList = (json['sections'] as List)
+            .map((sectionJson) => Section.fromJson(sectionJson as Map<String, dynamic>))
+            .toList()
+          ..sort((a, b) => a.order.compareTo(b.order));
+      } catch (e) {
+        print('Error parsing sections: $e');
+        sectionsList = null;
+      }
+    }
+
+    // Parse sectionsCount
+    int count = 0;
+    if (json['_count'] != null && json['_count']['sections'] != null) {
+      count = json['_count']['sections'] as int;
+    } else if (sectionsList != null) {
+      count = sectionsList.length;
     }
 
     return Chapter(
@@ -178,11 +240,9 @@ class Chapter {
           ? DateTime.parse(json['updatedAt'])
           : DateTime.now(),
       airline: json['airline'] != null
-          ? ChapterAirline.fromJson(json['airline'])
+          ? ChapterAirline.fromJson(json['airline'] as Map<String, dynamic>)
           : null,
-      sectionsCount: json['_count'] != null && json['_count']['sections'] != null
-          ? json['_count']['sections'] as int
-          : (sectionsList?.length ?? 0),
+      sectionsCount: count,
       sections: sectionsList,
     );
   }
@@ -198,9 +258,9 @@ class Chapter {
       'airlineId': airlineId,
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt.toIso8601String(),
-      'airline': airline?.toJson(),
+      if (airline != null) 'airline': airline!.toJson(),
       '_count': {'sections': sectionsCount},
-      'sections': sections?.map((s) => s.toJson()).toList(),
+      if (sections != null) 'sections': sections!.map((s) => s.toJson()).toList(),
     };
   }
 }

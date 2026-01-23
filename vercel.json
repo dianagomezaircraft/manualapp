@@ -1,0 +1,12 @@
+{
+  "buildCommand": "flutter pub get && flutter build web --release",
+  "outputDirectory": "build/web",
+  "installCommand": "echo 'Flutter dependencies handled by build command'",
+  "framework": null,
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "/index.html"
+    }
+  ]
+}
