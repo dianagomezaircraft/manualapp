@@ -1,144 +1,123 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'auth_service.dart';
-import 'sections_service.dart'; // Import sections service
+import '../services/auth_service.dart';
+import 'sections_service.dart';
 
 class ChaptersService {
   static const String baseUrl = 'http://localhost:3001/api';
-  // static const String baseUrl = 'https://admin-webapp-backend.onrender.com/api';
 
-  final AuthService _authService = AuthService();
+  final AuthService _auth = AuthService.instance;
 
-  // Get all chapters
-  Future<Map<String, dynamic>> getChapters() async {
+  /// Get all chapters
+  Future<Map<String, dynamic>> getChapters({
+    bool includeInactive = false,
+  }) async {
     try {
-      final accessToken = await _authService.getAccessToken();
+      final token = _auth.token;
+      final airlineId = _auth.airlineId;
 
-      if (accessToken == null) {
+      if (token == null || airlineId == null) {
         return {
           'success': false,
-          'error': 'No access token available',
+          'error': 'Missing auth or airline context',
         };
       }
 
-      final response = await http.get(
-        Uri.parse('$baseUrl/chapters'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $accessToken',
+      final uri = Uri.parse('$baseUrl/chapters').replace(
+        queryParameters: {
+          'airlineId': airlineId,
+          if (includeInactive) 'includeInactive': 'true',
         },
       );
 
-      print('Get chapters status: ${response.statusCode}');
-      print('Get chapters body: ${response.body}');
+      final response = await http.get(
+        uri,
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      );
 
       if (response.statusCode == 200) {
-        final responseData = jsonDecode(response.body);
+        final body = jsonDecode(response.body);
 
-        if (responseData['success'] == true && responseData['data'] != null) {
-          return {
-            'success': true,
-            'data': responseData['data'],
-          };
-        } else {
-          return {
-            'success': false,
-            'error': responseData['error'] ?? 'Failed to fetch chapters',
-          };
-        }
-      } else if (response.statusCode == 401) {
-        // Token might be expired, try to refresh
-        final refreshResult = await _authService.refreshAccessToken();
-
-        if (refreshResult['success'] == true) {
-          // Retry the request with new token
-          return await getChapters();
-        } else {
-          return {
-            'success': false,
-            'error': 'Authentication failed',
-            'needsLogin': true,
-          };
-        }
-      } else {
-        final error = jsonDecode(response.body);
         return {
-          'success': false,
-          'error': error['error'] ?? error['message'] ?? 'Failed to fetch chapters',
+          'success': true,
+          'data': body['data'],
         };
       }
-    } catch (e) {
-      print('Get chapters error: $e');
+
+      if (response.statusCode == 401) {
+        final refreshed = await _auth.refreshAccessToken();
+        if (refreshed['success'] == true) {
+          return await getChapters(includeInactive: includeInactive);
+        }
+      }
+
+      final error = jsonDecode(response.body);
       return {
         'success': false,
-        'error': 'Network error: ${e.toString()}',
+        'error': error['error'] ?? error['message'],
+      };
+    } catch (e) {
+      return {
+        'success': false,
+        'error': e.toString(),
       };
     }
   }
 
-  // Get chapter by ID
+  /// Get chapter by ID
   Future<Map<String, dynamic>> getChapterById(String chapterId) async {
     try {
-      final accessToken = await _authService.getAccessToken();
+      final token = _auth.token;
+      final airlineId = _auth.airlineId;
 
-      if (accessToken == null) {
+      if (token == null || airlineId == null) {
         return {
           'success': false,
-          'error': 'No access token available',
+          'error': 'Missing auth or airline context',
         };
       }
 
-      final response = await http.get(
-        Uri.parse('$baseUrl/chapters/$chapterId'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $accessToken',
+      final uri = Uri.parse('$baseUrl/chapters/$chapterId').replace(
+        queryParameters: {
+          'airlineId': airlineId,
         },
       );
 
-      print('Get chapter by ID status: ${response.statusCode}');
-      print('Get chapter by ID body: ${response.body}');
+      final response = await http.get(
+        uri,
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      );
 
       if (response.statusCode == 200) {
-        final responseData = jsonDecode(response.body);
-
-        if (responseData['success'] == true && responseData['data'] != null) {
-          return {
-            'success': true,
-            'data': responseData['data'],
-          };
-        } else {
-          return {
-            'success': false,
-            'error': responseData['error'] ?? 'Failed to fetch chapter',
-          };
-        }
-      } else if (response.statusCode == 401) {
-        // Token might be expired, try to refresh
-        final refreshResult = await _authService.refreshAccessToken();
-
-        if (refreshResult['success'] == true) {
-          // Retry the request with new token
-          return await getChapterById(chapterId);
-        } else {
-          return {
-            'success': false,
-            'error': 'Authentication failed',
-            'needsLogin': true,
-          };
-        }
-      } else {
-        final error = jsonDecode(response.body);
+        final body = jsonDecode(response.body);
         return {
-          'success': false,
-          'error': error['error'] ?? error['message'] ?? 'Failed to fetch chapter',
+          'success': true,
+          'data': body['data'],
         };
       }
-    } catch (e) {
-      print('Get chapter by ID error: $e');
+
+      if (response.statusCode == 401) {
+        final refreshed = await _auth.refreshAccessToken();
+        if (refreshed['success'] == true) {
+          return await getChapterById(chapterId);
+        }
+      }
+
+      final error = jsonDecode(response.body);
       return {
         'success': false,
-        'error': 'Network error: ${e.toString()}',
+        'error': error['error'] ?? error['message'],
+      };
+    } catch (e) {
+      return {
+        'success': false,
+        'error': e.toString(),
       };
     }
   }
