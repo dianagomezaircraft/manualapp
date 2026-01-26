@@ -468,7 +468,7 @@ class _SectionDetailScreenState extends State<SectionDetailScreen> {
               Text(
                 content.title,
                 style: const TextStyle(
-                  fontSize: 16,
+                  fontSize: 18,
                   fontWeight: FontWeight.bold,
                   fontFamily: 'Inter',
                   color: Colors.black87,
@@ -483,14 +483,14 @@ class _SectionDetailScreenState extends State<SectionDetailScreen> {
                 "body": Style(
                   margin: Margins.zero,
                   padding: HtmlPaddings.zero,
-                  fontSize: FontSize(14),
+                  fontSize: FontSize(16),
                   fontFamily: 'Inter',
                   color: Colors.grey[800],
                   lineHeight: LineHeight(1.6),
                 ),
                 "p": Style(
                   margin: Margins.only(bottom: 12),
-                  fontSize: FontSize(14),
+                  fontSize: FontSize(16),
                   fontFamily: 'Inter',
                   color: Colors.grey[800],
                 ),
@@ -504,7 +504,7 @@ class _SectionDetailScreenState extends State<SectionDetailScreen> {
                 ),
                 "li": Style(
                   margin: Margins.only(bottom: 8),
-                  fontSize: FontSize(14),
+                  fontSize: FontSize(16),
                   fontFamily: 'Inter',
                   color: Colors.grey[800],
                 ),

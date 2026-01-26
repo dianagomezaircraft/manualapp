@@ -202,13 +202,10 @@ class _CategoryScreenState extends State<CategoryScreen> {
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.centerRight,
-            colors: [
-              Color(0xFF8C573E), // Tan/Brown color from mockup
-              Color(0xFFF3e0c7),
-            ],
+          image: DecorationImage(
+            image: const AssetImage('assets/background_1.png'),
+            alignment: Alignment.topCenter,
+            fit: BoxFit.cover,
           ),
         ),
         child: SafeArea(
@@ -280,7 +277,7 @@ class _CategoryScreenState extends State<CategoryScreen> {
               Expanded(
                 child: Container(
                   decoration: const BoxDecoration(
-                    color: Color(0xFFEDEDED),
+                    color: Color(0xFFeeeff0),
                     borderRadius: BorderRadius.only(
                       topLeft: Radius.circular(20),
                       topRight: Radius.circular(20),
