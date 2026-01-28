@@ -75,30 +75,93 @@ class _ContactDetailsScreenState extends State<ContactDetailsScreen> {
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black87),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: const Text(
+@override
+Widget build(BuildContext context) {
+  return Scaffold(
+    extendBodyBehindAppBar: true,
+    appBar: AppBar(
+      backgroundColor: Colors.transparent,
+      elevation: 0,
+      leading: IconButton(
+        icon: const Icon(Icons.arrow_back, color: Colors.white),
+        onPressed: () => Navigator.pop(context),
+      ),
+      title: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        child: const Text(
           'Contact Details',
           style: TextStyle(
-            color: Colors.black87,
+            color: Colors.white,
             fontFamily: 'Inter',
             fontWeight: FontWeight.w600,
           ),
         ),
       ),
-      body: _buildBody(),
+    ),
+    body: Stack(
+      children: [
+        Positioned.fill(
+          child: Image.asset(
+            'assets/background_1.png',
+            fit: BoxFit.cover,
+          ),
+        ),
+        Positioned.fill(
+          top: kToolbarHeight + MediaQuery.of(context).padding.top,
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.7),
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(24),
+                topRight: Radius.circular(24),
+              ),
+            ),
+            child: _buildBody(),
+          ),
+        ),
+      ],
+    ),
+    bottomNavigationBar: const AppBottomNavigation(selectedIndex: 3),
+  );
+}
+
+/*   @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      //extendBodyBehindAppBar: true,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white /*Colors.black87*/),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: const Text(
+          'Contact Details',
+          style: TextStyle(
+            //color: Colors.black87,
+            color: Colors.white,
+            fontFamily: 'Inter',
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
+      body:Container(
+        decoration: BoxDecoration(
+          image: DecorationImage(
+            image: AssetImage('assets/background_1.png'),
+            fit: BoxFit.cover,
+            colorFilter: ColorFilter.mode(
+              Colors.white.withOpacity(0.7),
+              BlendMode.lighten,
+              ),
+            ),
+        ),
+        child: _buildBody(),
+      ),
       bottomNavigationBar: const AppBottomNavigation(selectedIndex: 3),
     );
-  }
+  } */
 
   Widget _buildBody() {
     if (isLoading) {
@@ -200,18 +263,18 @@ class _ContactDetailsScreenState extends State<ContactDetailsScreen> {
         // Group Header
         Container(
           width: double.infinity,
-          padding: const EdgeInsets.all(20),
-          color: Colors.grey[50],
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+          color: Colors.transparent,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 group.name,
                 style: TextStyle(
-                  fontSize: 14,
+                  fontSize: 20,
                   fontFamily: 'Inter',
                   fontWeight: FontWeight.w600,
-                  color: Colors.grey[800],
+                  color: Colors.black87,
                 ),
               ),
               if (group.description != null &&
@@ -220,9 +283,9 @@ class _ContactDetailsScreenState extends State<ContactDetailsScreen> {
                 Text(
                   group.description!,
                   style: TextStyle(
-                    fontSize: 12,
+                    fontSize: 16,
                     fontFamily: 'Inter',
-                    color: Colors.grey[600],
+                    color: Colors.grey[800],
                   ),
                 ),
               ],
@@ -233,7 +296,7 @@ class _ContactDetailsScreenState extends State<ContactDetailsScreen> {
         // Contacts in this group
         ...group.contacts.map((contact) => _buildContactCard(contact)),
 
-        const SizedBox(height: 16),
+        const SizedBox(height: 0),
       ],
     );
   }
@@ -248,9 +311,9 @@ class _ContactDetailsScreenState extends State<ContactDetailsScreen> {
         border: Border.all(color: Colors.grey.shade200),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
+            color: Colors.black.withOpacity(0.5),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
           ),
         ],
       ),
@@ -298,7 +361,7 @@ class _ContactDetailsScreenState extends State<ContactDetailsScreen> {
                       Text(
                         contact.title!,
                         style: TextStyle(
-                          fontSize: 12,
+                          fontSize: 14,
                           fontFamily: 'Inter',
                           color: Colors.grey[600],
                           height: 1.3,
@@ -310,7 +373,7 @@ class _ContactDetailsScreenState extends State<ContactDetailsScreen> {
                       Text(
                         contact.phone!,
                         style: TextStyle(
-                          fontSize: 11,
+                          fontSize: 12,
                           fontFamily: 'Inter',
                           color: Colors.grey[500],
                         ),
@@ -322,7 +385,7 @@ class _ContactDetailsScreenState extends State<ContactDetailsScreen> {
                       Text(
                         'Time zone ${contact.timezone}',
                         style: TextStyle(
-                          fontSize: 10,
+                          fontSize: 12,
                           fontFamily: 'Inter',
                           color: Colors.grey[400],
                         ),
@@ -333,7 +396,7 @@ class _ContactDetailsScreenState extends State<ContactDetailsScreen> {
                       Text(
                         '${contact.email}',
                         style: TextStyle(
-                          fontSize: 10,
+                          fontSize: 12,
                           fontFamily: 'Inter',
                           color: Colors.grey[400],
                         ),
