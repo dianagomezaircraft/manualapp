@@ -31,6 +31,8 @@ flutter:
     - assets/logoARTSWhite.svg
     - assets/logoWhite.png
     - assets/logoBlue.png
+    - assets/iconLeft.png
+    - assets/iconRight.png
 
   fonts:
     - family: Inter

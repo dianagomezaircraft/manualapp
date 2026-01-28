@@ -152,6 +152,7 @@ class _CategoryScreenState extends State<CategoryScreen> {
                 sectionId: section.id,
                 title: section.title,
                 subtitle: section.subtitle,
+                chapterTitle: chapterData.title,
               ),
             ),
           );

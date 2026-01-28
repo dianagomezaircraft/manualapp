@@ -10,12 +10,14 @@ class SectionDetailScreen extends StatefulWidget {
   final String? sectionId;
   final String title;
   final String subtitle;
+  final String chapterTitle;
 
   const SectionDetailScreen({
     super.key,
     this.sectionId,
     required this.title,
     required this.subtitle,
+    required this.chapterTitle,
   });
 
   @override
@@ -129,6 +131,30 @@ class _SectionDetailScreenState extends State<SectionDetailScreen> {
     );
   }
 
+  void _goToPreviousPage() {
+    if (currentPage > 0) {
+      _pageController.animateToPage(
+        currentPage - 1,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+      );
+    }
+  }
+
+  void _goToNextPage() {
+    final nonImageContents = contents
+        .where((c) => c.type != content_service.ContentType.IMAGE)
+        .toList();
+    
+    if (currentPage < nonImageContents.length - 1) {
+      _pageController.animateToPage(
+        currentPage + 1,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -140,14 +166,6 @@ class _SectionDetailScreenState extends State<SectionDetailScreen> {
           icon: const Icon(Icons.arrow_back, color: Colors.black87),
           onPressed: () => Navigator.pop(context),
         ),
-        actions: [
-          // IconButton(
-          //   icon: const Icon(Icons.share, color: Colors.black87),
-          //   onPressed: () {
-          //     // Share functionality
-          //   },
-          // ),
-        ],
       ),
       body: _buildBody(),
       bottomNavigationBar: const AppBottomNavigation(selectedIndex: 0),
@@ -208,141 +226,137 @@ class _SectionDetailScreenState extends State<SectionDetailScreen> {
       );
     }
 
-    return SingleChildScrollView(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Image Header
-          _buildImageHeader(),
+    return Column(
+      children: [
+        // Image Header
+        _buildImageHeader(),
 
-          // Content
-          Padding(
-            padding: const EdgeInsets.all(20.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Title
-                Text(
-                  sectionDetails?.title ?? widget.title,
-                  style: const TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    fontFamily: 'Inter',
-                    color: Colors.black87,
-                  ),
-                ),
-                const SizedBox(height: 8),
-
-                // Subtitle
-                Text(
-                  sectionDetails?.subtitle ?? widget.subtitle,
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontFamily: 'Inter',
-                    color: Colors.grey[600],
-                    height: 1.4,
-                  ),
-                ),
-                const SizedBox(height: 24),
-
-                // Section content (if available) - Now rendering HTML
-                if (sectionDetails?.content != null && sectionDetails!.content.isNotEmpty) ...[
-                  Html(
-                    data: sectionDetails!.content,
-                    style: {
-                      "body": Style(
-                        margin: Margins.zero,
-                        padding: HtmlPaddings.zero,
-                        fontSize: FontSize(14),
-                        fontFamily: 'Inter',
-                        color: Colors.grey[800],
-                        lineHeight: LineHeight(1.6),
-                      ),
-                      "p": Style(
-                        margin: Margins.only(bottom: 12),
-                        fontSize: FontSize(14),
-                        fontFamily: 'Inter',
-                        color: Colors.grey[800],
-                      ),
-                      "ul": Style(
-                        margin: Margins.only(bottom: 12, left: 8),
-                        padding: HtmlPaddings.only(left: 16),
-                      ),
-                      "ol": Style(
-                        margin: Margins.only(bottom: 12, left: 8),
-                        padding: HtmlPaddings.only(left: 16),
-                      ),
-                      "li": Style(
-                        margin: Margins.only(bottom: 8),
-                        fontSize: FontSize(14),
-                        fontFamily: 'Inter',
-                        color: Colors.grey[800],
-                      ),
-                      "h1": Style(
-                        fontSize: FontSize(20),
-                        fontWeight: FontWeight.bold,
-                        margin: Margins.only(bottom: 12, top: 8),
-                        color: Colors.black87,
-                      ),
-                      "h2": Style(
-                        fontSize: FontSize(18),
-                        fontWeight: FontWeight.bold,
-                        margin: Margins.only(bottom: 10, top: 8),
-                        color: Colors.black87,
-                      ),
-                      "h3": Style(
-                        fontSize: FontSize(16),
-                        fontWeight: FontWeight.bold,
-                        margin: Margins.only(bottom: 8, top: 6),
-                        color: Colors.black87,
-                      ),
-                      "strong": Style(
-                        fontWeight: FontWeight.bold,
-                      ),
-                      "em": Style(
-                        fontStyle: FontStyle.italic,
-                      ),
-                      "a": Style(
-                        color: const Color(0xFF123157),
-                        textDecoration: TextDecoration.underline,
-                      ),
-                    },
-                  ),
-                  const SizedBox(height: 24),
-                ],
-
-                // Dynamic contents from API
-                if (isLoadingContents)
-                  const Center(
-                    child: Padding(
-                      padding: EdgeInsets.all(20.0),
-                      child: CircularProgressIndicator(
-                        color: Color(0xFF123157),
-                      ),
-                    ),
-                  )
-                else if (contents.isNotEmpty)
-                  _buildContentsPageView()
-                else if (sectionDetails?.content == null || sectionDetails!.content.isEmpty)
+        // Content (Scrollable)
+        Expanded(
+          child: SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.all(20.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Title
                   Text(
-                    'No additional content available for this section.',
+                    widget.chapterTitle,
+                    style: const TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      fontFamily: 'Inter',
+                      color: Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+
+                  // Subtitle
+                  Text(
+                    sectionDetails?.title ?? widget.title,
                     style: TextStyle(
                       fontSize: 14,
                       fontFamily: 'Inter',
                       color: Colors.grey[600],
-                      fontStyle: FontStyle.italic,
+                      height: 1.4,
                     ),
                   ),
+                  const SizedBox(height: 24),
 
-                const SizedBox(height: 24),
+                  // Section content (if available)
+                  if (sectionDetails?.content != null && sectionDetails!.content.isNotEmpty) ...[
+                    Html(
+                      data: sectionDetails!.content,
+                      style: {
+                        "body": Style(
+                          margin: Margins.zero,
+                          padding: HtmlPaddings.zero,
+                          fontSize: FontSize(14),
+                          fontFamily: 'Inter',
+                          color: Colors.grey[800],
+                          lineHeight: LineHeight(1.6),
+                        ),
+                        "p": Style(
+                          margin: Margins.only(bottom: 12),
+                          fontSize: FontSize(14),
+                          fontFamily: 'Inter',
+                          color: Colors.grey[800],
+                        ),
+                        "ul": Style(
+                          margin: Margins.only(bottom: 12, left: 8),
+                          padding: HtmlPaddings.only(left: 16),
+                        ),
+                        "ol": Style(
+                          margin: Margins.only(bottom: 12, left: 8),
+                          padding: HtmlPaddings.only(left: 16),
+                        ),
+                        "li": Style(
+                          margin: Margins.only(bottom: 6),
+                          fontSize: FontSize(14),
+                          fontFamily: 'Inter',
+                          color: Colors.grey[800],
+                        ),
+                        "h1": Style(
+                          fontSize: FontSize(20),
+                          fontWeight: FontWeight.bold,
+                          margin: Margins.only(bottom: 12, top: 8),
+                          color: Colors.black87,
+                        ),
+                        "h2": Style(
+                          fontSize: FontSize(18),
+                          fontWeight: FontWeight.bold,
+                          margin: Margins.only(bottom: 10, top: 8),
+                          color: Colors.black87,
+                        ),
+                        "h3": Style(
+                          fontSize: FontSize(16),
+                          fontWeight: FontWeight.bold,
+                          margin: Margins.only(bottom: 8, top: 6),
+                          color: Colors.black87,
+                        ),
+                        "strong": Style(
+                          fontWeight: FontWeight.bold,
+                        ),
+                        "em": Style(
+                          fontStyle: FontStyle.italic,
+                        ),
+                        "a": Style(
+                          color: const Color(0xFF123157),
+                          textDecoration: TextDecoration.underline,
+                        ),
+                      },
+                    ),
+                    const SizedBox(height: 24),
+                  ],
 
-                // Navigation Dots
-                if (contents.length > 1) _buildNavigationDots(),
-              ],
+                  // Dynamic contents from API
+                  if (isLoadingContents)
+                    const Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(20.0),
+                        child: CircularProgressIndicator(
+                          color: Color(0xFF123157),
+                        ),
+                      ),
+                    )
+                  else if (contents.isNotEmpty)
+                    _buildContentsWithNavigation()
+                  else if (sectionDetails?.content == null || sectionDetails!.content.isEmpty)
+                    Text(
+                      'No additional content available for this section.',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontFamily: 'Inter',
+                        color: Colors.grey[600],
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
+                ],
+              ),
             ),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
@@ -410,7 +424,7 @@ class _SectionDetailScreenState extends State<SectionDetailScreen> {
     }
   }
 
-  Widget _buildContentsPageView() {
+  Widget _buildContentsWithNavigation() {
     // Filter out images as they're shown in the header
     final nonImageContents = contents
         .where((c) => c.type != content_service.ContentType.IMAGE)
@@ -420,41 +434,91 @@ class _SectionDetailScreenState extends State<SectionDetailScreen> {
       return const SizedBox.shrink();
     }
 
-    // If there's only one content, don't use PageView
+    // If there's only one content, show it without navigation
     if (nonImageContents.length == 1) {
       return _buildContentItem(nonImageContents[0]);
     }
 
-    // Multiple contents - use PageView
-    return SizedBox(
-      height: 500, // Adjust this height based on your content
-      child: PageView.builder(
-        controller: _pageController,
-        onPageChanged: (index) {
-          setState(() {
-            currentPage = index;
-          });
-        },
-        itemCount: nonImageContents.length,
-        itemBuilder: (context, index) {
-          return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8.0),
-            child: _buildContentItem(nonImageContents[index]),
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _buildContentsList() {
+    // Multiple contents - show with navigation arrows beside content
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: contents.where((c) => c.type != content_service.ContentType.IMAGE).map((content) {
-        return Padding(
-          padding: const EdgeInsets.only(bottom: 16.0),
-          child: _buildContentItem(content),
-        );
-      }).toList(),
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Left arrow
+            Padding(
+              padding: const EdgeInsets.only(top: 60, right: 8),
+              child: GestureDetector(
+                onTap: currentPage > 0 ? _goToPreviousPage : null,
+                child: Opacity(
+                  opacity: currentPage > 0 ? 1.0 : 0.3,
+                  child: Image.asset(
+                    'assets/iconLeft.png',
+                    width: 32,
+                    height: 32,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Icon(
+                        Icons.arrow_back_ios,
+                        size: 32,
+                        color: currentPage > 0 
+                            ? const Color(0xFF123157) 
+                            : Colors.grey[300],
+                      );
+                    },
+                  ),
+                ),
+              ),
+            ),
+
+            // Content PageView with fixed height
+            Expanded(
+              child: SizedBox(
+                height: MediaQuery.of(context).size.height * 0.45,
+                child: PageView.builder(
+                  controller: _pageController,
+                  physics: const NeverScrollableScrollPhysics(), // Disable swipe, use arrows only
+                  onPageChanged: (index) {
+                    setState(() {
+                      currentPage = index;
+                    });
+                  },
+                  itemCount: nonImageContents.length,
+                  itemBuilder: (context, index) {
+                    return SingleChildScrollView(
+                      child: _buildContentItem(nonImageContents[index]),
+                    );
+                  },
+                ),
+              ),
+            ),
+
+            // Right arrow
+            Padding(
+              padding: const EdgeInsets.only(top: 60, left: 8),
+              child: GestureDetector(
+                onTap: currentPage < nonImageContents.length - 1 ? _goToNextPage : null,
+                child: Opacity(
+                  opacity: currentPage < nonImageContents.length - 1 ? 1.0 : 0.3,
+                  child: Image.asset(
+                    'assets/iconRight.png',
+                    width: 32,
+                    height: 32,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Icon(
+                        Icons.arrow_forward_ios,
+                        size: 32,
+                        color: currentPage < nonImageContents.length - 1
+                            ? const Color(0xFF123157)
+                            : Colors.grey[300],
+                      );
+                    },
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 
@@ -463,6 +527,7 @@ class _SectionDetailScreenState extends State<SectionDetailScreen> {
       case content_service.ContentType.TEXT:
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
           children: [
             if (content.title.isNotEmpty) ...[
               Text(
@@ -474,7 +539,7 @@ class _SectionDetailScreenState extends State<SectionDetailScreen> {
                   color: Colors.black87,
                 ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 12),
             ],
             // Render HTML content
             Html(
@@ -483,14 +548,14 @@ class _SectionDetailScreenState extends State<SectionDetailScreen> {
                 "body": Style(
                   margin: Margins.zero,
                   padding: HtmlPaddings.zero,
-                  fontSize: FontSize(16),
+                  fontSize: FontSize(14),
                   fontFamily: 'Inter',
                   color: Colors.grey[800],
                   lineHeight: LineHeight(1.6),
                 ),
                 "p": Style(
                   margin: Margins.only(bottom: 12),
-                  fontSize: FontSize(16),
+                  fontSize: FontSize(14),
                   fontFamily: 'Inter',
                   color: Colors.grey[800],
                 ),
@@ -503,8 +568,8 @@ class _SectionDetailScreenState extends State<SectionDetailScreen> {
                   padding: HtmlPaddings.only(left: 16),
                 ),
                 "li": Style(
-                  margin: Margins.only(bottom: 8),
-                  fontSize: FontSize(16),
+                  margin: Margins.only(bottom: 6),
+                  fontSize: FontSize(14),
                   fontFamily: 'Inter',
                   color: Colors.grey[800],
                 ),
@@ -594,32 +659,5 @@ class _SectionDetailScreenState extends State<SectionDetailScreen> {
       default:
         return const SizedBox.shrink();
     }
-  }
-
-  Widget _buildNavigationDots() {
-    // Show dots based on number of contents or default to 3
-    final dotCount = contents.isEmpty ? 3 : contents.length;
-
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: List.generate(
-        dotCount > 5 ? 5 : dotCount, // Max 5 dots
-        (index) => Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 4),
-          child: _buildDot(currentPage == index),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildDot(bool isActive) {
-    return Container(
-      width: 8,
-      height: 8,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: isActive ? const Color(0xFF123157) : Colors.grey[300],
-      ),
-    );
   }
 }
