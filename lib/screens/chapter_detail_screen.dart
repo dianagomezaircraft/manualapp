@@ -83,18 +83,30 @@ class _ChapterDetailScreenState extends State<ChapterDetailScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF123157),
-      body: SafeArea(
-        child: Column(
-          children: [
-            // Custom App Bar with Search
-            _buildCustomAppBar(),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end:  Alignment(0.0, 0.0),
+            colors: [
+                Color(0xFF123157),
+                Color(0xFF1e518f),
+              ],
+          ),
+        ),
+      
+        child: SafeArea(
+          child: Column(
+            children: [
+              // Custom App Bar with Search
+              _buildCustomAppBar(),
 
-            // Main Content
-            Expanded(
-              child: _buildBody(),
-            ),
-          ],
+              // Main Content
+              Expanded(
+                child: _buildBody(),
+              ),
+            ],
+          ),
         ),
       ),
       bottomNavigationBar: const AppBottomNavigation(selectedIndex: 0),
@@ -127,7 +139,7 @@ class _ChapterDetailScreenState extends State<ChapterDetailScreen> {
             widget.chapterNumber,
             style: const TextStyle(
               color: Colors.white,
-              fontSize: 16,
+              fontSize: 24,
               fontFamily: 'Inter',
               fontWeight: FontWeight.w600,
             ),
@@ -137,7 +149,7 @@ class _ChapterDetailScreenState extends State<ChapterDetailScreen> {
             chapterDetails?.title ?? widget.chapterTitle,
             style: const TextStyle(
               color: Colors.white,
-              fontSize: 20,
+              fontSize: 18,
               fontFamily: 'Inter',
               fontWeight: FontWeight.bold,
             ),
@@ -218,7 +230,7 @@ class _ChapterDetailScreenState extends State<ChapterDetailScreen> {
 
     return Container(
       decoration: const BoxDecoration(
-        color: Colors.white,
+        color: Color(0xFFeeeff0),
         borderRadius: BorderRadius.only(
           topLeft: Radius.circular(30),
           topRight: Radius.circular(30),
@@ -297,12 +309,20 @@ class _ChapterDetailScreenState extends State<ChapterDetailScreen> {
     return Container(
       decoration: BoxDecoration(
         color: const Color(0xFF123157),
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment(0.0,0.1),
+          colors: [
+            Color(0xFF1e518f),
+            Color(0xFF123157),
+          ],
+        ),
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 8,
-            offset: const Offset(0, 4),
+            color: Colors.black.withOpacity(0.6),
+            blurRadius: 5,
+            offset: const Offset(3, 6),
           ),
         ],
       ),
@@ -337,7 +357,7 @@ class _ChapterDetailScreenState extends State<ChapterDetailScreen> {
                   child: Icon(
                     sectionIcon,
                     size: 40,
-                    color: const Color(0xFFD4AF37), // Gold color
+                    color: const Color(0xFFAD8042), // Gold color
                   ),
                 ),
                 const SizedBox(height: 16),

@@ -202,42 +202,44 @@ class _CategoryScreenState extends State<CategoryScreen> {
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Color(0xFFB8956A), // Tan/Brown color from mockup
-              Color(0xFF8B7355),
-            ],
+          image: DecorationImage(
+            image: const AssetImage('assets/background_1.png'),
+            alignment: Alignment.topCenter,
+            fit: BoxFit.cover,
           ),
         ),
         child: SafeArea(
           child: Column(
             children: [
               // Header Section
+              const SizedBox(height: 30),
               Padding(
-                padding: const EdgeInsets.all(20.0),
+                padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 20.0),
                 child: Column(
                   children: [
                     // Greeting
-                    Text(
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child:Text(
                       'Hi ${widget.userName}!',
                       style: const TextStyle(
                         color: Colors.white,
-                        fontSize: 32,
+                        fontSize: 28,
                         fontWeight: FontWeight.bold,
                         fontFamily: 'Inter',
                       ),
                     ),
+                    ),
+                    
                     const SizedBox(height: 12),
 
                     // Description
                     const Text(
                       'Access the loss prevention measures and the key steps and contacts you would need in the event of a  loss.',
-                      textAlign: TextAlign.center,
+                      textAlign: TextAlign.left,
                       style: TextStyle(
                         color: Colors.white,
-                        fontSize: 14,
+                        fontSize: 16,
                         fontFamily: 'Inter',
                         height: 1.4,
                       ),
@@ -248,20 +250,23 @@ class _CategoryScreenState extends State<CategoryScreen> {
                     Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 16,
-                        vertical: 12,
+                        vertical: 15,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.2),
+                        color: Colors.white,
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: [
-                          _buildStarRating(1, 'Incident'),
-                          _buildStarRating(1, 'Major Loss'),
-                          _buildStarRating(1, 'Injuries'),
-                          _buildStarRating(1, 'Liability'),
-                        ],
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8.0), // Ajusta el valor de padding
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween, // Esto separa los elementos
+                          children: [
+                            _buildStarRating(1, 'Incident'),
+                            _buildStarRating(1, 'Major Loss'),
+                            _buildStarRating(1, 'Injuries'),
+                            _buildStarRating(1, 'Liability'),
+                          ],
+                        ),
                       ),
                     ),
                   ],
@@ -272,15 +277,15 @@ class _CategoryScreenState extends State<CategoryScreen> {
               Expanded(
                 child: Container(
                   decoration: const BoxDecoration(
-                    color: Colors.white,
+                    color: Color(0xFFeeeff0),
                     borderRadius: BorderRadius.only(
-                      topLeft: Radius.circular(30),
-                      topRight: Radius.circular(30),
+                      topLeft: Radius.circular(20),
+                      topRight: Radius.circular(20),
                     ),
                   ),
                   child: Column(
                     children: [
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 29),
                       Expanded(
                         child: _buildChaptersList(),
                       ),
@@ -413,8 +418,8 @@ class _CategoryScreenState extends State<CategoryScreen> {
             children: List.generate(stars, (index) {
               return Icon(
                 isSelected ? Icons.star : Icons.star_border,
-                color: isSelected ? Colors.orange : Colors.white,
-                size: 20,
+                color: isSelected ? Color(0xFFAD8042) : Colors.grey,
+                size: 30,
               );
             }),
           ),
@@ -422,7 +427,7 @@ class _CategoryScreenState extends State<CategoryScreen> {
           Text(
             label,
             style: TextStyle(
-              color: Colors.white,
+              color: Colors.grey,
               fontSize: 10,
               fontFamily: 'Inter',
               fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
@@ -441,7 +446,7 @@ class _CategoryScreenState extends State<CategoryScreen> {
     int index,
   ) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
+      margin: const EdgeInsets.only(bottom: 15),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
@@ -451,7 +456,7 @@ class _CategoryScreenState extends State<CategoryScreen> {
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withOpacity(0.5),
             blurRadius: 4,
             offset: const Offset(0, 2),
           ),
@@ -463,7 +468,7 @@ class _CategoryScreenState extends State<CategoryScreen> {
           borderRadius: BorderRadius.circular(12),
           onTap: () => _handleChapterTap(chapterId, title, chapterNumber),
           child: Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(20),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
