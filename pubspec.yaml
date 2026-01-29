@@ -28,6 +28,7 @@ flutter:
   assets:
     - assets/background_1.png
     - assets/background.png
+    - assets/claimIcon.png
     - assets/logoARTSWhite.svg
     - assets/logoWhite.png
     - assets/logoBlue.png
