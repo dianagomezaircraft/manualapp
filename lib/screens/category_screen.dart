@@ -471,7 +471,6 @@ class _CategoryScreenState extends State<CategoryScreen> {
           child: Padding(
             padding: const EdgeInsets.all(20),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   children: [
@@ -479,32 +478,26 @@ class _CategoryScreenState extends State<CategoryScreen> {
                       child: Text(
                         title,
                         style: const TextStyle(
-                          fontSize: 16,
+                          fontSize: 15,
                           fontWeight: FontWeight.bold,
                           fontFamily: 'Inter',
                           color: Colors.black87,
                         ),
                       ),
                     ),
-                    Text(
-                      chapterNumber,
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        fontFamily: 'Inter',
-                        color: Colors.grey[500],
-                      ),
-                    ),
                   ],
                 ),
                 const SizedBox(height: 8),
-                Text(
-                  subtitle,
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontFamily: 'Inter',
-                    color: Colors.grey[600],
-                    height: 1.4,
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    chapterNumber,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      fontFamily: 'Inter',
+                      color: Colors.black87,
+                    ),
                   ),
                 ),
               ],
