@@ -5,14 +5,14 @@ import 'sections_service.dart';
 import '../config/api_config.dart';
 
 class ChaptersService {
-  
   final AuthService _authService = AuthService();
 
   // Get all chapters
-  Future<Map<String, dynamic>> getChapters({String? airlineId, bool includeInactive = false}) async {
+  Future<Map<String, dynamic>> getChapters(
+      {String? airlineId, bool includeInactive = false}) async {
     try {
       final accessToken = await _authService.getAccessToken();
-      
+
       if (accessToken == null) {
         return {
           'success': false,
@@ -29,7 +29,8 @@ class ChaptersService {
         queryParams['includeInactive'] = 'true';
       }
 
-      final uri = Uri.parse('${ApiConfig.baseUrl}/chapters').replace(queryParameters: queryParams);
+      final uri = Uri.parse('${ApiConfig.baseUrl}/chapters')
+          .replace(queryParameters: queryParams);
 
       final response = await http.get(
         uri,
@@ -39,12 +40,12 @@ class ChaptersService {
         },
       );
 
-      print('Get chapters status: ${response.statusCode}');
-      print('Get chapters body: ${response.body}');
+      // print('Get chapters status: ${response.statusCode}');
+      // print('Get chapters body: ${response.body}');
 
       if (response.statusCode == 200) {
         final responseData = jsonDecode(response.body);
-        
+
         if (responseData['success'] == true && responseData['data'] != null) {
           return {
             'success': true,
@@ -60,7 +61,7 @@ class ChaptersService {
       } else if (response.statusCode == 401) {
         // Token might be expired, try to refresh
         final refreshResult = await _authService.refreshAccessToken();
-        
+
         if (refreshResult['success'] == true) {
           // Retry the request with new token
           return await getChapters(
@@ -79,7 +80,9 @@ class ChaptersService {
           final error = jsonDecode(response.body);
           return {
             'success': false,
-            'error': error['error'] ?? error['message'] ?? 'Failed to fetch chapters',
+            'error': error['error'] ??
+                error['message'] ??
+                'Failed to fetch chapters',
           };
         } catch (e) {
           return {
@@ -101,7 +104,7 @@ class ChaptersService {
   Future<Map<String, dynamic>> getChapterById(String chapterId) async {
     try {
       final accessToken = await _authService.getAccessToken();
-      
+
       if (accessToken == null) {
         return {
           'success': false,
@@ -122,7 +125,7 @@ class ChaptersService {
 
       if (response.statusCode == 200) {
         final responseData = jsonDecode(response.body);
-        
+
         if (responseData['success'] == true && responseData['data'] != null) {
           return {
             'success': true,
@@ -137,7 +140,7 @@ class ChaptersService {
       } else if (response.statusCode == 401) {
         // Token might be expired, try to refresh
         final refreshResult = await _authService.refreshAccessToken();
-        
+
         if (refreshResult['success'] == true) {
           // Retry the request with new token
           return await getChapterById(chapterId);
@@ -153,7 +156,8 @@ class ChaptersService {
           final error = jsonDecode(response.body);
           return {
             'success': false,
-            'error': error['error'] ?? error['message'] ?? 'Failed to fetch chapter',
+            'error':
+                error['error'] ?? error['message'] ?? 'Failed to fetch chapter',
           };
         } catch (e) {
           return {
@@ -178,6 +182,7 @@ class Chapter {
   final String title;
   final String description;
   final int chapterNumber;
+  final String? imageUrl;
   final int order;
   final bool active;
   final String airlineId;
@@ -192,6 +197,7 @@ class Chapter {
     required this.title,
     required this.description,
     required this.chapterNumber,
+    this.imageUrl,
     required this.order,
     required this.active,
     required this.airlineId,
@@ -208,7 +214,8 @@ class Chapter {
     if (json['sections'] != null && json['sections'] is List) {
       try {
         sectionsList = (json['sections'] as List)
-            .map((sectionJson) => Section.fromJson(sectionJson as Map<String, dynamic>))
+            .map((sectionJson) =>
+                Section.fromJson(sectionJson as Map<String, dynamic>))
             .toList()
           ..sort((a, b) => a.order.compareTo(b.order));
       } catch (e) {
@@ -230,6 +237,7 @@ class Chapter {
       title: json['title'] ?? '',
       description: json['description'] ?? '',
       chapterNumber: json['chapterNumber'] ?? 0,
+      imageUrl: json['imageUrl'],
       order: json['order'] ?? 0,
       active: json['active'] ?? true,
       airlineId: json['airlineId'] ?? '',
@@ -253,6 +261,7 @@ class Chapter {
       'title': title,
       'description': description,
       'chapterNumber': chapterNumber,
+      'imageUrl': imageUrl, 
       'order': order,
       'active': active,
       'airlineId': airlineId,
@@ -260,7 +269,8 @@ class Chapter {
       'updatedAt': updatedAt.toIso8601String(),
       if (airline != null) 'airline': airline!.toJson(),
       '_count': {'sections': sectionsCount},
-      if (sections != null) 'sections': sections!.map((s) => s.toJson()).toList(),
+      if (sections != null)
+        'sections': sections!.map((s) => s.toJson()).toList(),
     };
   }
 }

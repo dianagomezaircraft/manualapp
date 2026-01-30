@@ -258,9 +258,9 @@ class _CategoryScreenState extends State<CategoryScreen> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 8.0), // Ajusta el valor de padding
+                        padding: const EdgeInsets.symmetric(horizontal: 8.0),
                         child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween, // Esto separa los elementos
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             _buildStarRating(1, 'Incident'),
                             _buildStarRating(1, 'Major Loss'),
@@ -393,8 +393,8 @@ class _CategoryScreenState extends State<CategoryScreen> {
           final chapter = chapters[index];
           return _buildCategoryCard(
             chapter.title,
-            chapter.description,
             'CHAPTER ${chapter.order}',
+            chapter.imageUrl,
             chapter.id,
             index,
           );
@@ -441,8 +441,8 @@ class _CategoryScreenState extends State<CategoryScreen> {
 
   Widget _buildCategoryCard(
     String title,
-    String subtitle,
     String chapterNumber,
+    String? imageUrl,
     String chapterId,
     int index,
   ) {
@@ -470,13 +470,15 @@ class _CategoryScreenState extends State<CategoryScreen> {
           onTap: () => _handleChapterTap(chapterId, title, chapterNumber),
           child: Padding(
             padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            child: Row(
               children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
+                // Contenido del texto (lado derecho)
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Título del capítulo
+                      Text(
                         title,
                         style: const TextStyle(
                           fontSize: 16,
@@ -485,28 +487,79 @@ class _CategoryScreenState extends State<CategoryScreen> {
                           color: Colors.black87,
                         ),
                       ),
-                    ),
-                    Text(
-                      chapterNumber,
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        fontFamily: 'Inter',
-                        color: Colors.grey[500],
+                      const SizedBox(height: 8),
+                      // Número de capítulo (sin descripción)
+                      Text(
+                        chapterNumber,
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontFamily: 'Inter',
+                          color: Colors.grey[600],
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  subtitle,
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontFamily: 'Inter',
-                    color: Colors.grey[600],
-                    height: 1.4,
+                    ],
                   ),
                 ),
+                // Imagen del capítulo (lado izquierdo)
+                if (imageUrl != null && imageUrl.isNotEmpty)
+                  Container(
+                    width: 80,
+                    height: 80,
+                    margin: const EdgeInsets.only(right: 16),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(8),
+                      color: Colors.grey[200],
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: Image.network(
+                        imageUrl,
+                        fit: BoxFit.cover,
+                        loadingBuilder: (context, child, loadingProgress) {
+                          if (loadingProgress == null) return child;
+                          return Center(
+                            child: CircularProgressIndicator(
+                              value: loadingProgress.expectedTotalBytes != null
+                                  ? loadingProgress.cumulativeBytesLoaded /
+                                      loadingProgress.expectedTotalBytes!
+                                  : null,
+                              strokeWidth: 2,
+                              color: const Color(0xFF123157),
+                            ),
+                          );
+                        },
+                        errorBuilder: (context, error, stackTrace) {
+                          return Container(
+                            color: Colors.grey[300],
+                            child: Icon(
+                              Icons.image_not_supported,
+                              color: Colors.grey[500],
+                              size: 32,
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  )
+                else
+                  // Placeholder si no hay imagen
+                  Container(
+                    width: 80,
+                    height: 80,
+                    margin: const EdgeInsets.only(right: 16),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(8),
+                      color: Colors.grey[200],
+                    ),
+                    child: Icon(
+                      Icons.book,
+                      color: Colors.grey[400],
+                      size: 40,
+                    ),
+                  ),
+
+                //
+              
               ],
             ),
           ),
