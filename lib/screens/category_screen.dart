@@ -481,7 +481,7 @@ class _CategoryScreenState extends State<CategoryScreen> {
                       Text(
                         title,
                         style: const TextStyle(
-                          fontSize: 16,
+                          fontSize: 15,
                           fontWeight: FontWeight.bold,
                           fontFamily: 'Inter',
                           color: Colors.black87,

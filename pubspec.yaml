@@ -21,13 +21,14 @@ dev_dependencies:
     sdk: flutter
   flutter_lints: ^6.0.0
 
-
 flutter:
   uses-material-design: true
 
   assets:
     - assets/background_1.png
+    - assets/background_building.png
     - assets/background.png
+    - assets/claimIcon.png
     - assets/logoARTSWhite.svg
     - assets/logoWhite.png
     - assets/logoBlue.png
@@ -40,6 +41,9 @@ flutter:
         - asset: fonts/Inter_24pt-Regular.ttf
         - asset: fonts/Inter_28pt-Bold.ttf
           weight: 700
+        - asset: fonts/Inter_24pt-SemiBoldItalic.ttf
+          weight: 600     
+          style: italic    
         - asset: fonts/Inter_24pt-SemiBold.ttf
           weight: 600
 
