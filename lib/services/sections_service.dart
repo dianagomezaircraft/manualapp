@@ -27,8 +27,8 @@ class SectionsService {
         },
       );
 
-      print('Get section by ID status: ${response.statusCode}');
-      print('Get section by ID body: ${response.body}');
+      // print('Get section by ID status: ${response.statusCode}');
+      // print('Get section by ID body: ${response.body}');
 
       if (response.statusCode == 200) {
         final responseData = jsonDecode(response.body);
