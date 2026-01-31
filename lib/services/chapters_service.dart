@@ -8,8 +8,10 @@ class ChaptersService {
   final AuthService _authService = AuthService();
 
   // Get all chapters
-  Future<Map<String, dynamic>> getChapters(
-      {String? airlineId, bool includeInactive = false}) async {
+  Future<Map<String, dynamic>> getChapters({
+    String? airlineId,
+    bool includeInactive = false,
+  }) async {
     try {
       final accessToken = await _authService.getAccessToken();
 
@@ -17,12 +19,13 @@ class ChaptersService {
         return {
           'success': false,
           'error': 'No access token available',
+          'needsLogin': true,
         };
       }
 
       // Build query parameters
       final queryParams = <String, String>{};
-      if (airlineId != null) {
+      if (airlineId != null && airlineId.isNotEmpty) {
         queryParams['airlineId'] = airlineId;
       }
       if (includeInactive) {
@@ -30,7 +33,7 @@ class ChaptersService {
       }
 
       final uri = Uri.parse('${ApiConfig.baseUrl}/chapters')
-          .replace(queryParameters: queryParams);
+          .replace(queryParameters: queryParams.isNotEmpty ? queryParams : null);
 
       final response = await http.get(
         uri,
@@ -40,8 +43,8 @@ class ChaptersService {
         },
       );
 
-      // print('Get chapters status: ${response.statusCode}');
-      // print('Get chapters body: ${response.body}');
+      print('Get chapters status: ${response.statusCode}');
+      print('Get chapters body: ${response.body}');
 
       if (response.statusCode == 200) {
         final responseData = jsonDecode(response.body);
@@ -109,6 +112,7 @@ class ChaptersService {
         return {
           'success': false,
           'error': 'No access token available',
+          'needsLogin': true,
         };
       }
 
@@ -261,7 +265,7 @@ class Chapter {
       'title': title,
       'description': description,
       'chapterNumber': chapterNumber,
-      'imageUrl': imageUrl, 
+      'imageUrl': imageUrl,
       'order': order,
       'active': active,
       'airlineId': airlineId,

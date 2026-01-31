@@ -6,7 +6,12 @@ import 'login_screen.dart';
 import '../widgets/app_bottom_navigation.dart';
 
 class SearchScreen extends StatefulWidget {
-  const SearchScreen({super.key});
+  final String? initialSearchTerm; // NUEVO: Término de búsqueda inicial
+  
+  const SearchScreen({
+    super.key,
+    this.initialSearchTerm,
+  });
 
   @override
   State<SearchScreen> createState() => _SearchScreenState();
@@ -28,6 +33,16 @@ class _SearchScreenState extends State<SearchScreen> {
   @override
   void initState() {
     super.initState();
+    
+    // NUEVO: Si hay término inicial, establecerlo y buscar
+    if (widget.initialSearchTerm != null && widget.initialSearchTerm!.isNotEmpty) {
+      _searchController.text = widget.initialSearchTerm!;
+      // Ejecutar búsqueda después del build
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _performSearch();
+      });
+    }
+    
     // Add debounce to search
     _searchController.addListener(_onSearchChanged);
   }
@@ -557,5 +572,4 @@ class _SearchScreenState extends State<SearchScreen> {
 
     return spans;
   }
-
 }

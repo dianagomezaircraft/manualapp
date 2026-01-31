@@ -768,6 +768,10 @@ class _ChapterDetailScreenState extends State<ChapterDetailScreen> {
   }
 
   Widget _buildSectionCard(Section section) {
+    // Determinar si la sección tiene imagen
+    final bool hasImage = section.imageUrl != null && section.imageUrl!.isNotEmpty;
+    
+    // Obtener icono por defecto basado en el título
     IconData sectionIcon = Icons.description;
 
     if (section.title.toLowerCase().contains('hull')) {
@@ -827,18 +831,67 @@ class _ChapterDetailScreenState extends State<ChapterDetailScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.2),
-                    shape: BoxShape.circle,
+                // Mostrar imagen si existe, sino mostrar icono
+                if (hasImage)
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: Container(
+                      width: 80,
+                      height: 80,
+                      decoration: BoxDecoration(
+                        // color: Colors.white.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Image.network(
+                        section.imageUrl!,
+                        width: 80,
+                        height: 80,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          // Si falla la carga de la imagen, mostrar icono por defecto
+                          return Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.2),
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              sectionIcon,
+                              size: 40,
+                              color: const Color(0xFFAD8042),
+                            ),
+                          );
+                        },
+                        loadingBuilder: (context, child, loadingProgress) {
+                          if (loadingProgress == null) return child;
+                          return Center(
+                            child: CircularProgressIndicator(
+                              value: loadingProgress.expectedTotalBytes != null
+                                  ? loadingProgress.cumulativeBytesLoaded /
+                                      loadingProgress.expectedTotalBytes!
+                                  : null,
+                              color: const Color(0xFFAD8042),
+                              strokeWidth: 2,
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  )
+                else
+                  // Mostrar icono por defecto si no hay imagen
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.2),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      sectionIcon,
+                      size: 40,
+                      color: const Color(0xFFAD8042),
+                    ),
                   ),
-                  child: Icon(
-                    sectionIcon,
-                    size: 40,
-                    color: const Color(0xFFAD8042),
-                  ),
-                ),
                 const SizedBox(height: 16),
                 Text(
                   section.title,

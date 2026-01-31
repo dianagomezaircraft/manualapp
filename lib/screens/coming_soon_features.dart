@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import '../widgets/app_bottom_navigation.dart';
 
-class ComingSoonScreen extends StatelessWidget {
-  const ComingSoonScreen({super.key});
+class ComingSoonFeatures extends StatelessWidget {
+  const ComingSoonFeatures({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -66,13 +66,30 @@ class ComingSoonScreen extends StatelessWidget {
                             ),
                             const SizedBox(height: 50),
                             
+
+                            // Coming Soon Message
+                        const Text(
+                          'We are working on new features to better protect you',
+                          textAlign: TextAlign.justify,
+                          style: TextStyle(
+                            color: Color(0xFF123157),
+                            fontSize: 16,
+                            fontStyle: FontStyle.italic,
+                            fontWeight: FontWeight.w600,
+                            fontFamily: 'Inter',
+                            height: 1.5,
+                          ),
+                        ),
+                            const SizedBox(height: 50),
+
                             // ARTS Text
                             const Text(
                               'Coming soon...',
                               style: TextStyle(
                                 color: Color(0xFF123157),
                                 fontSize: 20,
-                                fontWeight: FontWeight.bold,
+                                fontStyle: FontStyle.italic,
+                                // fontWeight: FontWeight.bold,
                                 fontFamily: 'Inter',
                                 letterSpacing: 2,
                               ),
@@ -93,22 +110,8 @@ class ComingSoonScreen extends StatelessWidget {
                             ), */
                           ],
                         ),
-
-                        const SizedBox(height: 40),
                         
-                        // Coming Soon Message
-                        const Text(
-                          'In the future you will be able to notify any type of claim through the app. This will immediately notify all parties involved in your policies to allow for a swift and efficient handling of your claim',
-                          textAlign: TextAlign.justify,
-                          style: TextStyle(
-                            color: Color(0xFF123157),
-                            fontSize: 16,
-                            fontStyle: FontStyle.italic,
-                            fontWeight: FontWeight.w600,
-                            fontFamily: 'Inter',
-                            height: 1.5,
-                          ),
-                        ),
+                        
                         
                         const SizedBox(height: 70),
                       ],

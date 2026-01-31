@@ -407,13 +407,25 @@ Widget build(BuildContext context) {
               ),
             ],
           ),
-
+          
+          // Espacio de separación entre email y botones de contacto
+          const SizedBox(height: 12),
+          
           // Contact Actions (only show if phone or email exists)
           if ((contact.phone != null && contact.phone!.isNotEmpty) ||
               (contact.email != null && contact.email!.isNotEmpty)) ...[
-            const SizedBox(height: 16),
             Row(
               children: [
+                if (contact.phone != null && contact.phone!.isNotEmpty)
+                  Expanded(
+                    child: _buildActionButton(
+                      icon: Icons.phone,
+                      label: 'Contact',
+                      onTap: () => (),
+                      // info: contact.phone!,
+                      // onTap: () => _makePhoneCall(contact.phone!),
+                    ),
+                  ),
                 if (contact.phone != null &&
                     contact.phone!.isNotEmpty &&
                     contact.email != null &&
@@ -426,17 +438,6 @@ Widget build(BuildContext context) {
                       label: 'Email',
                       info: contact.email!,
                       onTap: () => _sendEmail(contact.email!),
-                    ),
-                  ),
-                if (contact.phone != null && contact.phone!.isNotEmpty)
-                  Expanded(
-                    child: _buildActionButton(
-                      icon: Icons.phone,
-                      label: 'Contact',
-                      onTap: () => (),
-
-                      // info: contact.phone!,
-                      // onTap: () => _makePhoneCall(contact.phone!),
                     ),
                   ),
               ],
@@ -484,19 +485,19 @@ Widget build(BuildContext context) {
                 color: Color(0xFF123157),
               ),
             ),
-            if (info != null && info!.isNotEmpty) ...[
-              const SizedBox(height: 2),
-              Text(
-                info!,
-                style: TextStyle(
-                  fontSize: 10,
-                  fontFamily: 'Inter',
-                  color: Colors.grey[600],
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
+            // if (info != null && info!.isNotEmpty) ...[
+            //   const SizedBox(height: 2),
+            //   Text(
+            //     info!,
+            //     style: TextStyle(
+            //       fontSize: 10,
+            //       fontFamily: 'Inter',
+            //       color: Colors.grey[600],
+            //     ),
+            //     maxLines: 1,
+            //     overflow: TextOverflow.ellipsis,
+            //   ),
+            // ],
           ],
         ),
       ),

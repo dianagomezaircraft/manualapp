@@ -19,59 +19,66 @@ class _LoginScreenState extends State<LoginScreen> {
   String? _errorMessage;
 
   Future<void> _handleLogin() async {
-    // Clear previous error
+  // Clear previous error
+  setState(() {
+    _errorMessage = null;
+    _isLoading = true;
+  });
+
+  final email = _emailController.text.trim();
+  final password = _passwordController.text.trim();
+
+  // Validation
+  if (email.isEmpty || password.isEmpty) {
     setState(() {
-      _errorMessage = null;
-      _isLoading = true;
-    });
-
-    final email = _emailController.text.trim();
-    final password = _passwordController.text.trim();
-
-    // Validation
-    if (email.isEmpty || password.isEmpty) {
-      setState(() {
-        _errorMessage = 'Please enter email and password';
-        _isLoading = false;
-      });
-      return;
-    }
-
-    if (!_isValidEmail(email)) {
-      setState(() {
-        _errorMessage = 'Please enter a valid email';
-        _isLoading = false;
-      });
-      return;
-    }
-
-    // Call API
-    final result = await _authService.login(email, password);
-
-    if (!mounted) return;
-
-    setState(() {
+      _errorMessage = 'Please enter email and password';
       _isLoading = false;
     });
-
-    if (result['success']) {
-      // Get user name from response
-      final userName = result['data']['user']['firstName'] ?? 'User';
-
-      // Navigate to CategoryScreen
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (context) => CategoryScreen(userName: userName),
-        ),
-      );
-    } else {
-      // Show error
-      setState(() {
-        _errorMessage = result['error'];
-      });
-    }
+    return;
   }
+
+  if (!_isValidEmail(email)) {
+    setState(() {
+      _errorMessage = 'Please enter a valid email';
+      _isLoading = false;
+    });
+    return;
+  }
+
+  // Call API
+  final result = await _authService.login(email, password);
+  
+  if (!mounted) return;
+
+  setState(() {
+    _isLoading = false;
+  });
+
+  if (result['success']) {
+    // El nombre ya está guardado en SharedPreferences por AuthService
+    final userName = await _authService.getUserName(); // <-- ESTE AWAIT ES EL PROBLEMA
+    
+    print('result success $userName');
+    print('About to navigate...'); // Agrega este log
+    
+    // Navigate to CategoryScreen
+    if (!mounted) return; // Verifica mounted después del await
+    
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (context) => CategoryScreen(userName: userName),
+      ),
+    );
+    
+    print('Navigation called'); // Agrega este log
+  } else {
+    // Show error
+    setState(() {
+      _errorMessage = result['error'];
+    });
+  }
+}
 
   bool _isValidEmail(String email) {
     return RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(email);
@@ -156,7 +163,8 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                             child: Row(
                               children: [
-                                Icon(Icons.error_outline, color: Colors.red[700], size: 20),
+                                Icon(Icons.error_outline,
+                                    color: Colors.red[700], size: 20),
                                 const SizedBox(width: 8),
                                 Expanded(
                                   child: Text(
@@ -221,30 +229,33 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                           child: _isLoading
                               ? const SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                            ),
-                          )
+                                  height: 20,
+                                  width: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                        Colors.white),
+                                  ),
+                                )
                               : const Text(
-                            'Log in',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              fontFamily: 'Inter',
-                            ),
-                          ),
+                                  'Log in',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    fontFamily: 'Inter',
+                                  ),
+                                ),
                         ),
                         const SizedBox(height: 16),
 
                         // Forgot Password
                         Center(
                           child: TextButton(
-                            onPressed: _isLoading ? null : () {
-                              // TODO: Implement forgot password
-                            },
+                            onPressed: _isLoading
+                                ? null
+                                : () {
+                                    // TODO: Implement forgot password
+                                  },
                             child: const Text(
                               'Forgot Password?',
                               style: TextStyle(

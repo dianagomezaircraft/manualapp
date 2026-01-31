@@ -1,3 +1,4 @@
+import 'package:arts_claims_app/screens/coming_soon_features.dart';
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
 import '../services/chapters_service.dart';
@@ -39,67 +40,82 @@ class _CategoryScreenState extends State<CategoryScreen> {
     _loadChapters();
   }
 
-  Future<void> _loadChapters() async {
-    setState(() {
-      isLoading = true;
-      errorMessage = null;
-    });
+ Future<void> _loadChapters() async {
+  setState(() {
+    isLoading = true;
+    errorMessage = null;
+  });
 
-    try {
-      // Obtener los datos del usuario para extraer el airlineId
-      final userData = await _authService.getUserData();
+  try {
+    // Obtener los datos del usuario
+    final userData = await _authService.getUserData();
 
-      if (userData == null) {
-        throw Exception('User not authenticated');
-      }
+    if (userData == null) {
+      throw Exception('User not authenticated');
+    }
 
-      // Obtener el airlineId del usuario
-      final airlineId = userData['airlineId'];
-      if (airlineId == null) {
+    // Obtener el rol del usuario
+    final userRole = userData['role'];
+    print('User role: $userRole');
+
+    String? airlineId;
+
+    // Si NO es SUPER_ADMIN, necesita tener un airlineId
+    if (userRole != 'SUPER_ADMIN') {
+      airlineId = userData['airlineId'];
+      if (airlineId == null || airlineId.isEmpty) {
         throw Exception('User has no airline assigned');
       }
+      print('Loading chapters for airline: $airlineId');
+    } else {
+      print('Loading all chapters for SUPER_ADMIN');
+    }
 
-      // Llamar al servicio solo con el airlineId
-      // El servicio maneja el token internamente
-      final result = await _chaptersService.getChapters(
-        airlineId: airlineId,
-      );
+    // Llamar al servicio
+    // Para SUPER_ADMIN: airlineId será null, así que obtendrá todos los capítulos
+    // Para otros usuarios: airlineId tendrá valor, así que filtrará por aerolínea
+    final result = await _chaptersService.getChapters(
+      airlineId: airlineId,
+    );
 
-      if (!mounted) return;
+    if (!mounted) return;
 
-      if (result['success'] == true) {
-        final chaptersData = result['data'] as List<dynamic>;
-        setState(() {
-          chapters = chaptersData.map((json) => Chapter.fromJson(json)).toList()
-            ..sort((a, b) => a.order.compareTo(b.order)); // Sort by order
-          isLoading = false;
-        });
-      } else {
-        setState(() {
-          errorMessage = result['error'] ?? 'Failed to load chapters';
-          isLoading = false;
-        });
-
-        // If authentication failed, redirect to login
-        if (result['needsLogin'] == true) {
-          _handleLogout();
-        }
-      }
-    } catch (e) {
-      if (!mounted) return;
-
+    if (result['success'] == true) {
+      final chaptersData = result['data'] as List<dynamic>;
       setState(() {
-        errorMessage = e.toString();
+        chapters = chaptersData.map((json) => Chapter.fromJson(json)).toList()
+          ..sort((a, b) => a.order.compareTo(b.order));
+        isLoading = false;
+      });
+      print('Loaded ${chapters.length} chapters');
+    } else {
+      setState(() {
+        errorMessage = result['error'] ?? 'Failed to load chapters';
         isLoading = false;
       });
 
-      // Si hay error de autenticación, redirigir al login
-      if (e.toString().contains('not authenticated') ||
-          e.toString().contains('no airline assigned')) {
+      // If authentication failed, redirect to login
+      if (result['needsLogin'] == true) {
         _handleLogout();
       }
     }
+  } catch (e) {
+    if (!mounted) return;
+
+    print('Error loading chapters: $e');
+
+    setState(() {
+      errorMessage = e.toString();
+      isLoading = false;
+    });
+
+    // Solo redirigir al login si el error es de autenticación
+    // NO redirigir por falta de airlineId si es SUPER_ADMIN
+    if (e.toString().contains('not authenticated')) {
+      _handleLogout();
+    }
   }
+}
 
   Future<void> _handleLogout() async {
     await _authService.logout();
@@ -156,6 +172,14 @@ class _CategoryScreenState extends State<CategoryScreen> {
               ),
             ),
           );
+        } else if (chapterData.sections!.isEmpty) {
+          // Ir a la pantalla de capítulo (comportamiento normal)
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => ComingSoonFeatures(),
+            ),
+          );
         } else {
           // Ir a la pantalla de capítulo (comportamiento normal)
           Navigator.push(
@@ -198,13 +222,25 @@ class _CategoryScreenState extends State<CategoryScreen> {
     }
   }
 
+  // NUEVO: Navegar a la pantalla de búsqueda con el término
+  void _navigateToSearch(String searchTerm) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => SearchScreen(
+          initialSearchTerm: searchTerm,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
           image: DecorationImage(
-            image: const AssetImage('assets/background_1.png'),
+            image: AssetImage('assets/background_1.png'),
             alignment: Alignment.topCenter,
             fit: BoxFit.cover,
           ),
@@ -215,23 +251,24 @@ class _CategoryScreenState extends State<CategoryScreen> {
               // Header Section
               const SizedBox(height: 30),
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 20.0),
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 20.0, vertical: 20.0),
                 child: Column(
                   children: [
                     // Greeting
                     Align(
                       alignment: Alignment.centerLeft,
-                      child:Text(
-                      'Hi ${widget.userName}!',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 28,
-                        fontWeight: FontWeight.bold,
-                        fontFamily: 'Inter',
+                      child: Text(
+                        'Hi ${widget.userName}!',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 28,
+                          fontWeight: FontWeight.bold,
+                          fontFamily: 'Inter',
+                        ),
                       ),
                     ),
-                    ),
-                    
+
                     const SizedBox(height: 12),
 
                     // Description
@@ -394,6 +431,7 @@ class _CategoryScreenState extends State<CategoryScreen> {
           return _buildCategoryCard(
             chapter.title,
             'CHAPTER ${chapter.order}',
+            chapter.description,
             chapter.imageUrl,
             chapter.id,
             index,
@@ -408,6 +446,10 @@ class _CategoryScreenState extends State<CategoryScreen> {
 
     return GestureDetector(
       onTap: () {
+        // CAMBIO: Navegar a búsqueda en lugar de solo cambiar estado
+        _navigateToSearch(label);
+
+        // Opcional: Mantener selección visual
         setState(() {
           selectedRating = stars;
         });
@@ -419,7 +461,7 @@ class _CategoryScreenState extends State<CategoryScreen> {
             children: List.generate(stars, (index) {
               return Icon(
                 isSelected ? Icons.star : Icons.star_border,
-                color: isSelected ? Color(0xFFAD8042) : Colors.grey,
+                color: isSelected ? const Color(0xFFAD8042) : Colors.grey,
                 size: 30,
               );
             }),
@@ -442,6 +484,7 @@ class _CategoryScreenState extends State<CategoryScreen> {
   Widget _buildCategoryCard(
     String title,
     String chapterNumber,
+    String? description,
     String? imageUrl,
     String chapterId,
     int index,
@@ -490,7 +533,9 @@ class _CategoryScreenState extends State<CategoryScreen> {
                       const SizedBox(height: 8),
                       // Número de capítulo (sin descripción)
                       Text(
-                        chapterNumber,
+                        description! != 'Coming soon'
+                            ? chapterNumber
+                            : description,
                         style: TextStyle(
                           fontSize: 13,
                           fontFamily: 'Inter',
@@ -507,9 +552,8 @@ class _CategoryScreenState extends State<CategoryScreen> {
                     height: 80,
                     margin: const EdgeInsets.only(right: 16),
                     decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(8),
-                      color: Colors.grey[200],
-                    ),
+                        borderRadius: BorderRadius.circular(8),
+                        color: Colors.transparent),
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(8),
                       child: Image.network(
@@ -533,7 +577,7 @@ class _CategoryScreenState extends State<CategoryScreen> {
                             color: Colors.grey[300],
                             child: Icon(
                               Icons.image_not_supported,
-                              color: Colors.grey[500],
+                              color: Colors.transparent,
                               size: 32,
                             ),
                           );
@@ -557,9 +601,6 @@ class _CategoryScreenState extends State<CategoryScreen> {
                       size: 40,
                     ),
                   ),
-
-                //
-              
               ],
             ),
           ),
