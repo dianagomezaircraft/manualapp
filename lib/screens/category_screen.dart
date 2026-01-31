@@ -131,7 +131,7 @@ class _CategoryScreenState extends State<CategoryScreen> {
   }
 
   Future<void> _handleChapterTap(
-      String chapterId, String title, String chapterNumber) async {
+      String chapterId, String title, String description, String chapterNumber) async {
     // Mostrar un indicador de carga
     showDialog(
       context: context,
@@ -430,7 +430,7 @@ class _CategoryScreenState extends State<CategoryScreen> {
           final chapter = chapters[index];
           return _buildCategoryCard(
             chapter.title,
-            'CHAPTER ${chapter.order}',
+            'CHAPTER ${chapter.order - 1}',
             chapter.description,
             chapter.imageUrl,
             chapter.id,
@@ -510,7 +510,7 @@ class _CategoryScreenState extends State<CategoryScreen> {
         color: Colors.transparent,
         child: InkWell(
           borderRadius: BorderRadius.circular(12),
-          onTap: () => _handleChapterTap(chapterId, title, chapterNumber),
+          onTap: () => _handleChapterTap(chapterId, title, description, chapterNumber),
           child: Padding(
             padding: const EdgeInsets.all(20),
             child: Row(

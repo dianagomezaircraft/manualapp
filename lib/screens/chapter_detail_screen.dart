@@ -32,7 +32,7 @@ class _ChapterDetailScreenState extends State<ChapterDetailScreen> {
   Chapter? chapterDetails;
   bool isLoading = false;
   String? errorMessage;
-  
+
   // Search-related state
   List<SearchResult> searchResults = [];
   bool isSearching = false;
@@ -68,7 +68,7 @@ class _ChapterDetailScreenState extends State<ChapterDetailScreen> {
 
   Future<void> _performSearch() async {
     final query = _searchController.text.trim();
-    
+
     if (query.isEmpty) {
       setState(() {
         searchResults = [];
@@ -254,15 +254,17 @@ class _ChapterDetailScreenState extends State<ChapterDetailScreen> {
 
           // Chapter title (only show when not searching)
           if (!hasSearched) ...[
-            Text(
-              widget.chapterNumber,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 24,
-                fontFamily: 'Inter',
-                fontWeight: FontWeight.w600,
+            if (chapterDetails?.description != 'Coming soon') ...[
+              Text(
+                widget.chapterNumber,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 24,
+                  fontFamily: 'Inter',
+                  fontWeight: FontWeight.w600,
+                ),
               ),
-            ),
+            ],
             const SizedBox(height: 4),
             Text(
               chapterDetails?.title ?? widget.chapterTitle,
@@ -769,8 +771,9 @@ class _ChapterDetailScreenState extends State<ChapterDetailScreen> {
 
   Widget _buildSectionCard(Section section) {
     // Determinar si la sección tiene imagen
-    final bool hasImage = section.imageUrl != null && section.imageUrl!.isNotEmpty;
-    
+    final bool hasImage =
+        section.imageUrl != null && section.imageUrl!.isNotEmpty;
+
     // Obtener icono por defecto basado en el título
     IconData sectionIcon = Icons.description;
 
