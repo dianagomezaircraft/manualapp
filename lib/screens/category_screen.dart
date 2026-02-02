@@ -2,6 +2,8 @@ import 'package:arts_claims_app/screens/coming_soon_features.dart';
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
 import '../services/chapters_service.dart';
+import '../services/airline_service.dart';
+import '../models/airline.dart';
 import '../widgets/app_bottom_navigation.dart';
 
 // Import the screens
@@ -29,93 +31,157 @@ class _CategoryScreenState extends State<CategoryScreen> {
 
   final AuthService _authService = AuthService();
   final ChaptersService _chaptersService = ChaptersService();
+  final AirlineService _airlineService = AirlineService();
 
   List<Chapter> chapters = [];
+  List<Airline> airlines = [];
   bool isLoading = true;
+  bool isLoadingAirlines = false;
   String? errorMessage;
+  String userName = 'User';
+  bool isSuperAdmin = false;
+  String? selectedAirlineId; // For dropdown filter
+  String? userAirlineId; // User's assigned airline
 
   @override
   void initState() {
     super.initState();
-    _loadChapters();
+    _loadUserName();
+    _initializeScreen();
   }
 
- Future<void> _loadChapters() async {
-  setState(() {
-    isLoading = true;
-    errorMessage = null;
-  });
+  Future<void> _initializeScreen() async {
+    await _checkUserRole();
+    if (isSuperAdmin) {
+      await _loadAirlines();
+    }
+    await _loadChapters();
+  }
 
-  try {
-    // Obtener los datos del usuario
+  // Check if user is SUPER_ADMIN
+  Future<void> _checkUserRole() async {
     final userData = await _authService.getUserData();
-
-    if (userData == null) {
-      throw Exception('User not authenticated');
+    if (userData != null) {
+      setState(() {
+        isSuperAdmin = userData['role'] == 'SUPER_ADMIN';
+        if (!isSuperAdmin) {
+          userAirlineId = userData['airlineId'];
+        }
+      });
     }
+  }
 
-    // Obtener el rol del usuario
-    final userRole = userData['role'];
-    print('User role: $userRole');
+  // Load airlines for dropdown (only for SUPER_ADMIN)
+  Future<void> _loadAirlines() async {
+    setState(() {
+      isLoadingAirlines = true;
+    });
 
-    String? airlineId;
-
-    // Si NO es SUPER_ADMIN, necesita tener un airlineId
-    if (userRole != 'SUPER_ADMIN') {
-      airlineId = userData['airlineId'];
-      if (airlineId == null || airlineId.isEmpty) {
-        throw Exception('User has no airline assigned');
+    try {
+      final token = await _authService.getAccessToken();
+      
+      if (token == null) {
+        throw Exception('No access token available');
       }
-      print('Loading chapters for airline: $airlineId');
-    } else {
-      print('Loading all chapters for SUPER_ADMIN');
+
+      final airlinesData = await _airlineService.getAllAirlines(token: token);
+      
+      if (mounted) {
+        setState(() {
+          airlines = airlinesData;
+          isLoadingAirlines = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          isLoadingAirlines = false;
+        });
+      }
+      print('Error loading airlines: $e');
     }
+  }
 
-    // Llamar al servicio
-    // Para SUPER_ADMIN: airlineId será null, así que obtendrá todos los capítulos
-    // Para otros usuarios: airlineId tendrá valor, así que filtrará por aerolínea
-    final result = await _chaptersService.getChapters(
-      airlineId: airlineId,
-    );
-
-    if (!mounted) return;
-
-    if (result['success'] == true) {
-      final chaptersData = result['data'] as List<dynamic>;
+  // Load user name
+  Future<void> _loadUserName() async {
+    final name = await _authService.getUserName();
+    if (mounted) {
       setState(() {
-        chapters = chaptersData.map((json) => Chapter.fromJson(json)).toList()
-          ..sort((a, b) => a.order.compareTo(b.order));
+        userName = name;
+      });
+    }
+  }
+
+  Future<void> _loadChapters() async {
+    setState(() {
+      isLoading = true;
+      errorMessage = null;
+    });
+
+    try {
+      final userData = await _authService.getUserData();
+
+      if (userData == null) {
+        throw Exception('User not authenticated');
+      }
+
+      final userRole = userData['role'];
+      print('User role: $userRole');
+
+      String? airlineId;
+
+      if (userRole == 'SUPER_ADMIN') {
+        // Use selected airline from dropdown, or null to show all
+        airlineId = selectedAirlineId;
+        // print('Loading chapters for SUPER_ADMIN${airlineId != null ? " - Airline: $airlineId" : " - All airlines"}');
+      } else {
+        // Regular users use their assigned airline
+        airlineId = userData['airlineId'];
+        if (airlineId == null || airlineId.isEmpty) {
+          throw Exception('User has no airline assigned');
+        }
+        // print('Loading chapters for airline: $airlineId');
+      }
+
+      final result = await _chaptersService.getChapters(
+        airlineId: airlineId,
+      );
+
+      if (!mounted) return;
+
+      if (result['success'] == true) {
+        final chaptersData = result['data'] as List<dynamic>;
+        setState(() {
+          chapters = chaptersData.map((json) => Chapter.fromJson(json)).toList()
+            ..sort((a, b) => a.order.compareTo(b.order));
+          isLoading = false;
+        });
+        // print('Loaded ${chapters.length} chapters');
+      } else {
+        setState(() {
+          errorMessage = result['error'] ?? 'Failed to load chapters';
+          isLoading = false;
+        });
+
+        if (result['needsLogin'] == true) {
+          _handleLogout();
+        }
+      }
+    } catch (e) {
+      if (!mounted) return;
+
+      print('Error loading chapters: $e');
+
+      setState(() {
+        errorMessage = e.toString();
         isLoading = false;
       });
-      print('Loaded ${chapters.length} chapters');
-    } else {
-      setState(() {
-        errorMessage = result['error'] ?? 'Failed to load chapters';
-        isLoading = false;
-      });
 
-      // If authentication failed, redirect to login
-      if (result['needsLogin'] == true) {
+      if (e.toString().contains('not authenticated')) {
         _handleLogout();
       }
     }
-  } catch (e) {
-    if (!mounted) return;
-
-    print('Error loading chapters: $e');
-
-    setState(() {
-      errorMessage = e.toString();
-      isLoading = false;
-    });
-
-    // Solo redirigir al login si el error es de autenticación
-    // NO redirigir por falta de airlineId si es SUPER_ADMIN
-    if (e.toString().contains('not authenticated')) {
-      _handleLogout();
-    }
   }
-}
 
   Future<void> _handleLogout() async {
     await _authService.logout();
@@ -131,8 +197,7 @@ class _CategoryScreenState extends State<CategoryScreen> {
   }
 
   Future<void> _handleChapterTap(
-      String chapterId, String title, String description, String chapterNumber) async {
-    // Mostrar un indicador de carga
+      String chapterId, String title, String? description, String chapterNumber) async {
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -144,22 +209,18 @@ class _CategoryScreenState extends State<CategoryScreen> {
     );
 
     try {
-      // Obtener los detalles del capítulo
       final result = await _chaptersService.getChapterById(chapterId);
 
       if (!mounted) return;
 
-      // Cerrar el indicador de carga
       Navigator.pop(context);
 
       if (result['success'] == true) {
         final chapterData = Chapter.fromJson(result['data']);
 
-        // Verificar si sections no es nulo y tiene solo 1 sección
         if (chapterData.sections != null &&
             chapterData.sections!.isNotEmpty &&
             chapterData.sections!.length == 1) {
-          // Ir directamente al detalle de la sección
           final section = chapterData.sections!.first;
           Navigator.push(
             context,
@@ -167,21 +228,19 @@ class _CategoryScreenState extends State<CategoryScreen> {
               builder: (context) => SectionDetailScreen(
                 sectionId: section.id,
                 title: section.title,
-                subtitle: section.subtitle,
+                description: section.description,
                 chapterTitle: chapterData.title,
               ),
             ),
           );
         } else if (chapterData.sections!.isEmpty) {
-          // Ir a la pantalla de capítulo (comportamiento normal)
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => ComingSoonFeatures(),
+              builder: (context) => const ComingSoonFeatures(),
             ),
           );
         } else {
-          // Ir a la pantalla de capítulo (comportamiento normal)
           Navigator.push(
             context,
             MaterialPageRoute(
@@ -194,11 +253,9 @@ class _CategoryScreenState extends State<CategoryScreen> {
           );
         }
       } else {
-        // Manejar error
         if (result['needsLogin'] == true) {
           _handleLogout();
         } else {
-          // Mostrar mensaje de error
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(result['error'] ?? 'Error loading chapter'),
@@ -210,7 +267,6 @@ class _CategoryScreenState extends State<CategoryScreen> {
     } catch (e) {
       if (!mounted) return;
 
-      // Cerrar el indicador de carga si sigue abierto
       Navigator.pop(context);
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -222,7 +278,6 @@ class _CategoryScreenState extends State<CategoryScreen> {
     }
   }
 
-  // NUEVO: Navegar a la pantalla de búsqueda con el término
   void _navigateToSearch(String searchTerm) {
     Navigator.push(
       context,
@@ -248,7 +303,6 @@ class _CategoryScreenState extends State<CategoryScreen> {
         child: SafeArea(
           child: Column(
             children: [
-              // Header Section
               const SizedBox(height: 30),
               Padding(
                 padding: const EdgeInsets.symmetric(
@@ -259,7 +313,7 @@ class _CategoryScreenState extends State<CategoryScreen> {
                     Align(
                       alignment: Alignment.centerLeft,
                       child: Text(
-                        'Hi ${widget.userName}!',
+                        'Hi $userName!',
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 28,
@@ -283,6 +337,149 @@ class _CategoryScreenState extends State<CategoryScreen> {
                       ),
                     ),
                     const SizedBox(height: 20),
+
+                    // Airline Filter Dropdown (only for SUPER_ADMIN)
+                    if (isSuperAdmin && !isLoadingAirlines)
+                      Container(
+                        margin: const EdgeInsets.only(bottom: 16),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.1),
+                              blurRadius: 4,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: DropdownButtonHideUnderline(
+                          child: DropdownButton<String>(
+                            isExpanded: true,
+                            value: selectedAirlineId,
+                            hint: const Row(
+                              children: [
+                                Icon(
+                                  Icons.filter_list,
+                                  size: 18,
+                                  color: Color(0xFF123157),
+                                ),
+                                SizedBox(width: 8),
+                                Text(
+                                  'All Airlines',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontFamily: 'Inter',
+                                    color: Color(0xFF123157),
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            icon: const Icon(
+                              Icons.arrow_drop_down,
+                              color: Color(0xFF123157),
+                            ),
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontFamily: 'Inter',
+                              color: Color(0xFF123157),
+                            ),
+                            items: [
+                              const DropdownMenuItem<String>(
+                                value: null,
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      Icons.flight,
+                                      size: 18,
+                                      color: Color(0xFF123157),
+                                    ),
+                                    SizedBox(width: 8),
+                                    Text(
+                                      'All Airlines',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                        color: Color(0xFF123157),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              ...airlines.map((airline) {
+                                return DropdownMenuItem<String>(
+                                  value: airline.id,
+                                  child: Row(
+                                    children: [
+                                      const Icon(
+                                        Icons.flight,
+                                        size: 18,
+                                        color: Color(0xFF123157),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: Text(
+                                          '${airline.name} (${airline.code})',
+                                          style: const TextStyle(
+                                            color: Color(0xFF123157),
+                                          ),
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              }).toList(),
+                            ],
+                            onChanged: (String? newValue) {
+                              setState(() {
+                                selectedAirlineId = newValue;
+                              });
+                              _loadChapters();
+                            },
+                          ),
+                        ),
+                      ),
+
+                    // Loading airlines indicator
+                    if (isSuperAdmin && isLoadingAirlines)
+                      Container(
+                        margin: const EdgeInsets.only(bottom: 16),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Color(0xFF123157),
+                              ),
+                            ),
+                            SizedBox(width: 12),
+                            Text(
+                              'Loading airlines...',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontFamily: 'Inter',
+                                color: Color(0xFF123157),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
 
                     // Star Rating Section
                     Container(
@@ -404,7 +601,10 @@ class _CategoryScreenState extends State<CategoryScreen> {
               ),
               const SizedBox(height: 16),
               Text(
-                'No chapters available',
+                isSuperAdmin && selectedAirlineId != null
+                    ? 'No chapters available for selected airline'
+                    : 'No chapters available',
+                textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 16,
                   color: Colors.grey[600],
@@ -446,10 +646,7 @@ class _CategoryScreenState extends State<CategoryScreen> {
 
     return GestureDetector(
       onTap: () {
-        // CAMBIO: Navegar a búsqueda en lugar de solo cambiar estado
         _navigateToSearch(label);
-
-        // Opcional: Mantener selección visual
         setState(() {
           selectedRating = stars;
         });
@@ -515,12 +712,11 @@ class _CategoryScreenState extends State<CategoryScreen> {
             padding: const EdgeInsets.all(20),
             child: Row(
               children: [
-                // Contenido del texto (lado derecho)
+                // Text content
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Título del capítulo
                       Text(
                         title,
                         style: const TextStyle(
@@ -531,11 +727,10 @@ class _CategoryScreenState extends State<CategoryScreen> {
                         ),
                       ),
                       const SizedBox(height: 8),
-                      // Número de capítulo (sin descripción)
                       Text(
-                        description! != 'Coming soon'
+                        description != null && description != 'Coming soon'
                             ? chapterNumber
-                            : description,
+                            : description ?? chapterNumber,
                         style: TextStyle(
                           fontSize: 13,
                           fontFamily: 'Inter',
@@ -545,7 +740,7 @@ class _CategoryScreenState extends State<CategoryScreen> {
                     ],
                   ),
                 ),
-                // Imagen del capítulo (lado izquierdo)
+                // Chapter image
                 if (imageUrl != null && imageUrl.isNotEmpty)
                   Container(
                     width: 80,
@@ -575,7 +770,7 @@ class _CategoryScreenState extends State<CategoryScreen> {
                         errorBuilder: (context, error, stackTrace) {
                           return Container(
                             color: Colors.grey[300],
-                            child: Icon(
+                            child: const Icon(
                               Icons.image_not_supported,
                               color: Colors.transparent,
                               size: 32,
@@ -586,7 +781,6 @@ class _CategoryScreenState extends State<CategoryScreen> {
                     ),
                   )
                 else
-                  // Placeholder si no hay imagen
                   Container(
                     width: 80,
                     height: 80,

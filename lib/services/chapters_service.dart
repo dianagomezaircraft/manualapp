@@ -43,8 +43,6 @@ class ChaptersService {
         },
       );
 
-      print('Get chapters status: ${response.statusCode}');
-      print('Get chapters body: ${response.body}');
 
       if (response.statusCode == 200) {
         final responseData = jsonDecode(response.body);
@@ -124,8 +122,6 @@ class ChaptersService {
         },
       );
 
-      print('Get chapter by ID status: ${response.statusCode}');
-      print('Get chapter by ID body: ${response.body}');
 
       if (response.statusCode == 200) {
         final responseData = jsonDecode(response.body);
@@ -171,7 +167,6 @@ class ChaptersService {
         }
       }
     } catch (e) {
-      print('Get chapter by ID error: $e');
       return {
         'success': false,
         'error': 'Network error: ${e.toString()}',

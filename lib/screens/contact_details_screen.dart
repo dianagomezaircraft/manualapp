@@ -268,27 +268,29 @@ Widget build(BuildContext context) {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                group.name,
-                style: TextStyle(
-                  fontSize: 20,
-                  fontFamily: 'Inter',
-                  fontWeight: FontWeight.w600,
-                  color: Colors.black87,
-                ),
-              ),
               if (group.description != null &&
                   group.description!.isNotEmpty) ...[
                 const SizedBox(height: 4),
                 Text(
                   group.description!,
                   style: TextStyle(
-                    fontSize: 16,
+                    fontSize: 20,
                     fontFamily: 'Inter',
+                    fontWeight: FontWeight.w600,
                     color: Colors.grey[800],
                   ),
                 ),
               ],
+              Text(
+                group.name,
+                style: TextStyle(
+                  fontSize: 16,
+                  fontFamily: 'Inter',
+                  
+                  color: Colors.black87,
+                ),
+              ),
+              
             ],
           ),
         ),
@@ -421,9 +423,9 @@ Widget build(BuildContext context) {
                     child: _buildActionButton(
                       icon: Icons.phone,
                       label: 'Contact',
-                      onTap: () => (),
+                      // onTap: () => (),
                       // info: contact.phone!,
-                      // onTap: () => _makePhoneCall(contact.phone!),
+                      onTap: () => _makePhoneCall(contact.phone!),
                     ),
                   ),
                 if (contact.phone != null &&

@@ -1,6 +1,7 @@
 // services/search_service.dart
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:html/parser.dart' as html_parser;
 import 'auth_service.dart';
 import '../config/api_config.dart';
 
@@ -15,7 +16,7 @@ class SearchService {
   }) async {
     try {
       final token = await _authService.getAccessToken();
-      
+
       if (token == null) {
         return {
           'success': false,
@@ -25,8 +26,7 @@ class SearchService {
       }
 
       final url = Uri.parse(
-        '${ApiConfig.baseUrl}/search?q=${Uri.encodeComponent(query)}&limit=$limit&includeInactive=$includeInactive'
-      );
+          '${ApiConfig.baseUrl}/search?q=${Uri.encodeComponent(query)}&limit=$limit&includeInactive=$includeInactive');
 
       final response = await http.get(
         url,
@@ -72,7 +72,7 @@ class SearchService {
   }) async {
     try {
       final token = await _authService.getAccessToken();
-      
+
       if (token == null) {
         return {
           'success': false,
@@ -82,8 +82,7 @@ class SearchService {
       }
 
       final url = Uri.parse(
-        '${ApiConfig.baseUrl}/search/chapter/$chapterId?q=${Uri.encodeComponent(query)}'
-      );
+          '${ApiConfig.baseUrl}/search/chapter/$chapterId?q=${Uri.encodeComponent(query)}');
 
       final response = await http.get(
         url,
@@ -171,12 +170,84 @@ class SearchResult {
   // Get display text for the result
   String get displayText {
     if (content != null && content!.isNotEmpty) {
-      return content!;
+      return _stripHtmlTags(content!);
     }
     if (description != null && description!.isNotEmpty) {
-      return description!;
+      return _stripHtmlTags(description!);
     }
     return title;
+  }
+
+  // Improved HTML stripping method
+  String _stripHtmlTags(String htmlString) {
+    try {
+      // First, handle truncated tags at the beginning (like "...ill(s)" or "...aybill(s)")
+      // Remove leading ellipsis and broken words
+      String cleaned = htmlString;
+      
+      // Remove leading ellipsis and any partial text before the first complete word
+      if (cleaned.startsWith('...')) {
+        cleaned = cleaned.replaceFirst(RegExp(r'^\.{3}[^>\s]*'), '');
+      }
+      
+      // Remove trailing ellipsis
+      if (cleaned.endsWith('...')) {
+        cleaned = cleaned.replaceFirst(RegExp(r'[^<\s]*\.{3}$'), '...');
+      }
+      
+      // Parse HTML and extract text content
+      final document = html_parser.parse(cleaned);
+      String parsedString = document.body?.text ?? cleaned;
+      
+      // If html parser didn't work well, fall back to regex
+      if (parsedString.contains('<') || parsedString.contains('>')) {
+        // Remove all HTML tags
+        parsedString = cleaned.replaceAll(RegExp(r'<[^>]*>'), ' ');
+        
+        // Decode HTML entities
+        parsedString = _decodeHtmlEntities(parsedString);
+      }
+      
+      // Clean up whitespace
+      parsedString = parsedString
+          .replaceAll(RegExp(r'\s+'), ' ') // Replace multiple spaces with single space
+          .replaceAll(RegExp(r'\n\s*\n'), '\n') // Remove multiple newlines
+          .trim();
+      
+      // Remove any remaining ellipsis at the start if followed by lowercase
+      if (parsedString.startsWith('...')) {
+        parsedString = parsedString.replaceFirst(RegExp(r'^\.{3}\s*[a-z]+\s*'), '');
+      }
+      
+      // If the text is too short or doesn't make sense, try to clean it up more
+      if (parsedString.length < 10 || parsedString.startsWith('...')) {
+        parsedString = parsedString.replaceAll('...', '').trim();
+        // Capitalize first letter if it's lowercase
+        if (parsedString.isNotEmpty && parsedString[0] == parsedString[0].toLowerCase()) {
+          parsedString = parsedString[0].toUpperCase() + parsedString.substring(1);
+        }
+      }
+      
+      return parsedString.isEmpty ? title : parsedString;
+    } catch (e) {
+      // If anything fails, return the title as fallback
+      return title;
+    }
+  }
+  
+  // Helper method to decode HTML entities
+  String _decodeHtmlEntities(String text) {
+    return text
+        .replaceAll('&nbsp;', ' ')
+        .replaceAll('&amp;', '&')
+        .replaceAll('&lt;', '<')
+        .replaceAll('&gt;', '>')
+        .replaceAll('&quot;', '"')
+        .replaceAll('&#39;', "'")
+        .replaceAll('&apos;', "'")
+        .replaceAll('&ndash;', '–')
+        .replaceAll('&mdash;', '—')
+        .replaceAll('&hellip;', '…');
   }
 
   // Get the chapter display text

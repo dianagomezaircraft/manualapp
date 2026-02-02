@@ -4,7 +4,6 @@ import 'auth_service.dart';
 import '../config/api_config.dart';
 
 class ContentService {
-
   final AuthService _authService = AuthService();
 
   // Get all contents for a section
@@ -19,7 +18,6 @@ class ContentService {
         };
       }
 
-      // Fixed endpoint - removed duplicate 'contents'
       final response = await http.get(
         Uri.parse('${ApiConfig.baseUrl}/contents/sections/$sectionId'),
         headers: {
@@ -28,8 +26,6 @@ class ContentService {
         },
       );
 
-      print('Get contents status: ${response.statusCode}');
-      print('Get contents body: ${response.body}');
 
       if (response.statusCode == 200) {
         final responseData = jsonDecode(response.body);
@@ -46,11 +42,9 @@ class ContentService {
           };
         }
       } else if (response.statusCode == 401) {
-        // Token might be expired, try to refresh
         final refreshResult = await _authService.refreshAccessToken();
 
         if (refreshResult['success'] == true) {
-          // Retry the request with new token
           return await getContentsBySectionId(sectionId);
         } else {
           return {
@@ -67,7 +61,6 @@ class ContentService {
         };
       }
     } catch (e) {
-      print('Get contents error: $e');
       return {
         'success': false,
         'error': 'Network error: ${e.toString()}',
@@ -95,8 +88,6 @@ class ContentService {
         },
       );
 
-      print('Get content by ID status: ${response.statusCode}');
-      print('Get content by ID body: ${response.body}');
 
       if (response.statusCode == 200) {
         final responseData = jsonDecode(response.body);
@@ -113,11 +104,9 @@ class ContentService {
           };
         }
       } else if (response.statusCode == 401) {
-        // Token might be expired, try to refresh
         final refreshResult = await _authService.refreshAccessToken();
 
         if (refreshResult['success'] == true) {
-          // Retry the request with new token
           return await getContentById(contentId);
         } else {
           return {
@@ -143,13 +132,13 @@ class ContentService {
   }
 }
 
-// Content Type Enum - FIXED to match Prisma schema
+// Content Type Enum
 enum ContentType {
   TEXT,
   IMAGE,
   VIDEO,
-  PDF,    // Changed from LINK
-  AUDIO,  // Changed from FILE
+  PDF,
+  AUDIO,
 }
 
 // Content model class
@@ -205,9 +194,9 @@ class Content {
         return ContentType.IMAGE;
       case 'VIDEO':
         return ContentType.VIDEO;
-      case 'PDF':        // Fixed
+      case 'PDF':
         return ContentType.PDF;
-      case 'AUDIO':      // Fixed
+      case 'AUDIO':
         return ContentType.AUDIO;
       default:
         return ContentType.TEXT;

@@ -58,8 +58,7 @@ class _LoginScreenState extends State<LoginScreen> {
     // El nombre ya está guardado en SharedPreferences por AuthService
     final userName = await _authService.getUserName(); // <-- ESTE AWAIT ES EL PROBLEMA
     
-    print('result success $userName');
-    print('About to navigate...'); // Agrega este log
+ 
     
     // Navigate to CategoryScreen
     if (!mounted) return; // Verifica mounted después del await
@@ -71,7 +70,6 @@ class _LoginScreenState extends State<LoginScreen> {
       ),
     );
     
-    print('Navigation called'); // Agrega este log
   } else {
     // Show error
     setState(() {

@@ -66,7 +66,7 @@ class AuthService {
         };
       }
     } catch (e) {
-      print('Login error: $e');
+      // print('Login error: $e');
       return {
         'success': false,
         'error': 'Network error: ${e.toString()}',

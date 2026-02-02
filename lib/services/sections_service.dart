@@ -4,7 +4,6 @@ import 'auth_service.dart';
 import '../config/api_config.dart';
 
 class SectionsService {
-
   final AuthService _authService = AuthService();
 
   // Get section by ID
@@ -27,9 +26,6 @@ class SectionsService {
         },
       );
 
-      // print('Get section by ID status: ${response.statusCode}');
-      // print('Get section by ID body: ${response.body}');
-
       if (response.statusCode == 200) {
         final responseData = jsonDecode(response.body);
 
@@ -45,11 +41,9 @@ class SectionsService {
           };
         }
       } else if (response.statusCode == 401) {
-        // Token might be expired, try to refresh
         final refreshResult = await _authService.refreshAccessToken();
 
         if (refreshResult['success'] == true) {
-          // Retry the request with new token
           return await getSectionById(sectionId);
         } else {
           return {
@@ -79,7 +73,7 @@ class SectionsService {
 class Section {
   final String id;
   final String title;
-  final String subtitle;
+  final String description;
   final String content;
   final String? imageUrl;
   final int order;
@@ -91,7 +85,7 @@ class Section {
   Section({
     required this.id,
     required this.title,
-    required this.subtitle,
+    required this.description,
     required this.content,
     this.imageUrl,
     required this.order,
@@ -105,7 +99,7 @@ class Section {
     return Section(
       id: json['id'] ?? '',
       title: json['title'] ?? '',
-      subtitle: json['subtitle'] ?? '',
+      description: json['description'] ?? '',
       content: json['content'] ?? '',
       imageUrl: json['imageUrl'],
       order: json['order'] ?? 0,
@@ -124,7 +118,7 @@ class Section {
     return {
       'id': id,
       'title': title,
-      'subtitle': subtitle,
+      'description': description,
       'content': content,
       'imageUrl': imageUrl,
       'order': order,

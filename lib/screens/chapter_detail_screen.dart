@@ -6,6 +6,7 @@ import '../services/search_service.dart';
 import 'login_screen.dart';
 import 'section_detail_screen.dart';
 import '../widgets/app_bottom_navigation.dart';
+import 'package:arts_claims_app/screens/coming_soon_features.dart';
 
 class ChapterDetailScreen extends StatefulWidget {
   final String chapterTitle;
@@ -176,7 +177,7 @@ class _ChapterDetailScreenState extends State<ChapterDetailScreen> {
           ),
         ),
       ),
-      bottomNavigationBar: const AppBottomNavigation(selectedIndex: 0),
+      bottomNavigationBar: const AppBottomNavigation(selectedIndex: 5),
     );
   }
 
@@ -275,6 +276,18 @@ class _ChapterDetailScreenState extends State<ChapterDetailScreen> {
                 fontWeight: FontWeight.bold,
               ),
             ),
+            const SizedBox(height: 4),
+            if (chapterDetails?.description != null &&
+                chapterDetails!.description!.isNotEmpty)
+              Text(
+                chapterDetails!.description,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 12,
+                  fontFamily: 'Inter',
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
           ],
 
           // Search results count
@@ -817,18 +830,29 @@ class _ChapterDetailScreenState extends State<ChapterDetailScreen> {
         child: InkWell(
           borderRadius: BorderRadius.circular(16),
           onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => SectionDetailScreen(
-                  sectionId: section.id,
-                  title: section.title,
-                  subtitle: section.subtitle,
-                  chapterTitle: chapterDetails!.title,
-                ),
-              ),
-            );
-          },
+  // Check if description is "Coming soon"
+  if (section.description != null && 
+      section.description!.toLowerCase() == "coming soon") {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ComingSoonFeatures(),
+      ),
+    );
+  } else {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => SectionDetailScreen(
+          sectionId: section.id,
+          title: section.title,
+          description: section.description,
+          chapterTitle: chapterDetails!.title,
+        ),
+      ),
+    );
+  }
+},
           child: Padding(
             padding: const EdgeInsets.all(20),
             child: Column(
