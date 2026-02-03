@@ -254,21 +254,23 @@ class _ChapterDetailScreenState extends State<ChapterDetailScreen> {
           const SizedBox(height: 16),
 
           // Chapter title (only show when not searching)
-          if (!hasSearched) ...[
+          // Chapter title (only show when not searching and data is loaded)
+          if (!hasSearched && chapterDetails != null) ...[
             if (chapterDetails?.description != 'Coming soon') ...[
-              Text(
-                widget.chapterNumber,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 24,
-                  fontFamily: 'Inter',
-                  fontWeight: FontWeight.w600,
+              if (widget.chapterNumber.isNotEmpty)
+                Text(
+                  widget.chapterNumber,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 24,
+                    fontFamily: 'Inter',
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
-              ),
             ],
             const SizedBox(height: 4),
             Text(
-              chapterDetails?.title ?? widget.chapterTitle,
+              chapterDetails!.title,
               style: const TextStyle(
                 color: Colors.white,
                 fontSize: 18,
@@ -277,7 +279,7 @@ class _ChapterDetailScreenState extends State<ChapterDetailScreen> {
               ),
             ),
             const SizedBox(height: 4),
-            if (chapterDetails?.description != null &&
+            if (chapterDetails!.description != null &&
                 chapterDetails!.description!.isNotEmpty)
               Text(
                 chapterDetails!.description,
@@ -575,10 +577,26 @@ class _ChapterDetailScreenState extends State<ChapterDetailScreen> {
   }
 
   Widget _buildSearchResultItem(SearchResult result) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      child: InkWell(
-        onTap: () {
+  return Container(
+    margin: const EdgeInsets.only(bottom: 16),
+    child: InkWell(
+      onTap: () {
+        // Navigate based on result type
+        if (result.type == 'content' && result.sectionId != null) {
+          // Navigate to section detail for content results
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => SectionDetailScreen(
+                sectionId: result.sectionId!,
+                title: result.sectionTitle ?? result.title,
+                description: null,
+                chapterTitle: result.chapterTitle,
+              ),
+            ),
+          );
+        } else {
+          // Navigate to chapter detail for chapter/section results
           Navigator.push(
             context,
             MaterialPageRoute(
@@ -589,93 +607,98 @@ class _ChapterDetailScreenState extends State<ChapterDetailScreen> {
               ),
             ),
           );
-        },
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              margin: const EdgeInsets.only(top: 4),
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: _getTypeColor(result.type).withOpacity(0.1),
-                border: Border.all(
-                  color: _getTypeColor(result.type).withOpacity(0.3),
-                ),
-                shape: BoxShape.circle,
+        }
+      },
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            margin: const EdgeInsets.only(top: 4),
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: _getTypeColor(result.type).withOpacity(0.1),
+              border: Border.all(
+                color: _getTypeColor(result.type).withOpacity(0.3),
               ),
-              child: Icon(
-                _getTypeIcon(result.type),
-                size: 20,
-                color: _getTypeColor(result.type),
-              ),
+              shape: BoxShape.circle,
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    result.chapterTitle,
+            child: Icon(
+              _getTypeIcon(result.type),
+              size: 20,
+              color: _getTypeColor(result.type),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Chapter title
+                Text(
+                  result.chapterTitle,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontFamily: 'Inter',
+                    color: Colors.grey[500],
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                // Result title
+                Text(
+                  result.title,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    fontFamily: 'Inter',
+                    color: Colors.black87,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                // Result description/content
+                RichText(
+                  text: TextSpan(
                     style: TextStyle(
                       fontSize: 12,
                       fontFamily: 'Inter',
-                      color: Colors.grey[500],
-                      fontWeight: FontWeight.w500,
+                      color: Colors.grey[600],
+                      height: 1.4,
+                    ),
+                    children: _highlightKeyword(
+                      result.displayText,
+                      currentQuery,
                     ),
                   ),
-                  const SizedBox(height: 2),
-                  Text(
-                    result.title,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
+                ),
+                const SizedBox(height: 4),
+                // Type badge
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: _getTypeColor(result.type).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(
+                    result.typeDisplay,
+                    style: TextStyle(
+                      fontSize: 10,
                       fontFamily: 'Inter',
-                      color: Colors.black87,
+                      color: _getTypeColor(result.type),
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
-                  const SizedBox(height: 4),
-                  RichText(
-                    text: TextSpan(
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontFamily: 'Inter',
-                        color: Colors.grey[600],
-                        height: 1.4,
-                      ),
-                      children: _highlightKeyword(
-                        result.displayText,
-                        currentQuery,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 2,
-                    ),
-                    decoration: BoxDecoration(
-                      color: _getTypeColor(result.type).withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Text(
-                      result.typeDisplay,
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontFamily: 'Inter',
-                        color: _getTypeColor(result.type),
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
-    );
-  }
+    ),
+  );
+}
 
   IconData _getTypeIcon(String type) {
     switch (type) {
@@ -830,29 +853,29 @@ class _ChapterDetailScreenState extends State<ChapterDetailScreen> {
         child: InkWell(
           borderRadius: BorderRadius.circular(16),
           onTap: () {
-  // Check if description is "Coming soon"
-  if (section.description != null && 
-      section.description!.toLowerCase() == "coming soon") {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => ComingSoonFeatures(),
-      ),
-    );
-  } else {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => SectionDetailScreen(
-          sectionId: section.id,
-          title: section.title,
-          description: section.description,
-          chapterTitle: chapterDetails!.title,
-        ),
-      ),
-    );
-  }
-},
+            // Check if description is "Coming soon"
+            if (section.description != null &&
+                section.description!.toLowerCase() == "coming soon") {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => ComingSoonFeatures(),
+                ),
+              );
+            } else {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => SectionDetailScreen(
+                    sectionId: section.id,
+                    title: section.title,
+                    description: section.description,
+                    chapterTitle: chapterDetails!.title,
+                  ),
+                ),
+              );
+            }
+          },
           child: Padding(
             padding: const EdgeInsets.all(20),
             child: Column(
@@ -863,17 +886,17 @@ class _ChapterDetailScreenState extends State<ChapterDetailScreen> {
                   ClipRRect(
                     borderRadius: BorderRadius.circular(12),
                     child: Container(
-                      width: 80,
-                      height: 80,
+                      width: 100,
+                      height: 100,
                       decoration: BoxDecoration(
                         // color: Colors.white.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Image.network(
                         section.imageUrl!,
-                        width: 80,
-                        height: 80,
-                        fit: BoxFit.cover,
+                        width: 100,
+                        height: 100,
+                        fit: BoxFit.contain,
                         errorBuilder: (context, error, stackTrace) {
                           // Si falla la carga de la imagen, mostrar icono por defecto
                           return Container(

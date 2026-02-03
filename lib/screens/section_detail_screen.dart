@@ -45,7 +45,8 @@ class _SectionDetailScreenState extends State<SectionDetailScreen> {
     });
 
     try {
-      final result = await _contentService.getContentsBySectionId(widget.sectionId);
+      final result =
+          await _contentService.getContentsBySectionId(widget.sectionId);
 
       if (!mounted) return;
 
@@ -98,42 +99,56 @@ class _SectionDetailScreenState extends State<SectionDetailScreen> {
 
   // Build content with contact button
   Widget _buildContentWithContactButton(String htmlContent) {
-    // Split content by the marker
-    final parts = htmlContent.split('{{CONTACT_BUTTON}}');
+  final parts = htmlContent.split('{{CONTACT_BUTTON}}');
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // First part of content (before button)
-        if (parts.isNotEmpty)
-          Html(
-            data: parts[0],
-            style: {
-              "body": Style(
-                margin: Margins.zero,
-                padding: HtmlPaddings.zero,
-                fontSize: FontSize(16),
-                lineHeight: const LineHeight(1.5),
-                fontFamily: 'Inter',
-              ),
-              "p": Style(
-                margin: Margins.only(bottom: 12),
-              ),
-              "ul": Style(
-                margin: Margins.only(bottom: 12, left: 20),
-              ),
-              "li": Style(
-                margin: Margins.only(bottom: 8),
-              ),
-            },
-          ),
+  if (parts.length == 1) {
+    return Html(
+      data: htmlContent,
+      style: {
+        "body": Style(
+          margin: Margins.zero,
+          padding: HtmlPaddings.zero,
+          fontSize: FontSize(16),
+          lineHeight: const LineHeight(1.5),
+          fontFamily: 'Inter',
+        ),
+      },
+    );
+  }
 
-        // Contact button
-        Padding(
-          padding: const EdgeInsets.symmetric(vertical: 16.0),
-          child: Center(
-            child: ElevatedButton.icon(
-              onPressed: () {
+  // Replace the marker with an inline HTML element
+  final modifiedHtml = htmlContent.replaceAll(
+    '{{CONTACT_BUTTON}}',
+    '<span id="contact-button-placeholder">📞</span>',
+  );
+
+  return Html(
+    data: modifiedHtml,
+    style: {
+      "body": Style(
+        margin: Margins.zero,
+        padding: HtmlPaddings.zero,
+        fontSize: FontSize(16),
+        lineHeight: const LineHeight(1.5),
+        fontFamily: 'Inter',
+      ),
+      "p": Style(
+        margin: Margins.only(bottom: 12),
+      ),
+      "ul": Style(
+        margin: Margins.only(bottom: 12, left: 20),
+      ),
+      "li": Style(
+        margin: Margins.only(bottom: 8),
+      ),
+    },
+    extensions: [
+      TagExtension(
+        tagsToExtend: {"span"},
+        builder: (extensionContext) {
+          if (extensionContext.attributes['id'] == 'contact-button-placeholder') {
+            return InkWell(
+              onTap: () {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
@@ -141,57 +156,27 @@ class _SectionDetailScreenState extends State<SectionDetailScreen> {
                   ),
                 );
               },
-              icon: const Icon(Icons.contact_phone, size: 20),
-              label: const Text(
-                'View Contact Details',
-                style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.bold,
-                  fontFamily: 'Inter',
+              child: Container(
+                padding: const EdgeInsets.all(4),
+                margin: const EdgeInsets.symmetric(horizontal: 4),
+                decoration: const BoxDecoration(
+                  color: Color(0xFF123157),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.phone_outlined,
+                  size: 16,
+                  color: Colors.white,
                 ),
               ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF123157),
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 24,
-                  vertical: 14,
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                elevation: 2,
-              ),
-            ),
-          ),
-        ),
-
-        // Second part of content (after button)
-        if (parts.length > 1 && parts[1].trim().isNotEmpty)
-          Html(
-            data: parts[1],
-            style: {
-              "body": Style(
-                margin: Margins.zero,
-                padding: HtmlPaddings.zero,
-                fontSize: FontSize(16),
-                lineHeight: const LineHeight(1.5),
-                fontFamily: 'Inter',
-              ),
-              "p": Style(
-                margin: Margins.only(bottom: 12),
-              ),
-              "ul": Style(
-                margin: Margins.only(bottom: 12, left: 20),
-              ),
-              "li": Style(
-                margin: Margins.only(bottom: 8),
-              ),
-            },
-          ),
-      ],
-    );
-  }
+            );
+          }
+          return const SizedBox.shrink();
+        },
+      ),
+    ],
+  );
+}
 
   @override
   Widget build(BuildContext context) {
@@ -270,7 +255,8 @@ class _SectionDetailScreenState extends State<SectionDetailScreen> {
                     ),
 
                     // Description
-                    if (widget.description != null && widget.description!.isNotEmpty)
+                    if (widget.description != null &&
+                        widget.description!.isNotEmpty)
                       Padding(
                         padding: const EdgeInsets.only(top: 8.0),
                         child: Text(
@@ -374,7 +360,8 @@ class _SectionDetailScreenState extends State<SectionDetailScreen> {
                                       margin: Margins.only(bottom: 12),
                                     ),
                                     "ul": Style(
-                                      margin: Margins.only(bottom: 12, left: 20),
+                                      margin:
+                                          Margins.only(bottom: 12, left: 20),
                                     ),
                                     "li": Style(
                                       margin: Margins.only(bottom: 8),

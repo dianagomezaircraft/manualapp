@@ -1,4 +1,5 @@
 import 'package:arts_claims_app/screens/coming_soon_features.dart';
+import 'package:arts_claims_app/screens/comming_soon_screen.dart';
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
 import '../services/chapters_service.dart';
@@ -79,13 +80,13 @@ class _CategoryScreenState extends State<CategoryScreen> {
 
     try {
       final token = await _authService.getAccessToken();
-      
+
       if (token == null) {
         throw Exception('No access token available');
       }
 
       final airlinesData = await _airlineService.getAllAirlines(token: token);
-      
+
       if (mounted) {
         setState(() {
           airlines = airlinesData;
@@ -196,8 +197,8 @@ class _CategoryScreenState extends State<CategoryScreen> {
     );
   }
 
-  Future<void> _handleChapterTap(
-      String chapterId, String title, String? description, String chapterNumber) async {
+  Future<void> _handleChapterTap(String chapterId, String title,
+      String? description, String chapterNumber) async {
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -234,12 +235,21 @@ class _CategoryScreenState extends State<CategoryScreen> {
             ),
           );
         } else if (chapterData.sections!.isEmpty) {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => const ComingSoonFeatures(),
-            ),
-          );
+          if (chapterData.title == 'Notification of a Loss') {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const ComingSoonScreen(),
+              ),
+            );
+          } else {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const ComingSoonFeatures(),
+              ),
+            );
+          }
         } else {
           Navigator.push(
             context,
@@ -707,7 +717,8 @@ class _CategoryScreenState extends State<CategoryScreen> {
         color: Colors.transparent,
         child: InkWell(
           borderRadius: BorderRadius.circular(12),
-          onTap: () => _handleChapterTap(chapterId, title, description, chapterNumber),
+          onTap: () =>
+              _handleChapterTap(chapterId, title, description, chapterNumber),
           child: Padding(
             padding: const EdgeInsets.all(20),
             child: Row(
@@ -753,7 +764,7 @@ class _CategoryScreenState extends State<CategoryScreen> {
                       borderRadius: BorderRadius.circular(8),
                       child: Image.network(
                         imageUrl,
-                        fit: BoxFit.cover,
+                        fit: BoxFit.contain,
                         loadingBuilder: (context, child, loadingProgress) {
                           if (loadingProgress == null) return child;
                           return Center(

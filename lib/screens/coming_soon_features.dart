@@ -8,133 +8,138 @@ class ComingSoonFeatures extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       extendBodyBehindAppBar: true,
-      body: Stack( 
-        children: [   
-          Positioned.fill(                 // Aqui pongo la imagen de fondo
+      body: Stack(
+        children: [
+          // Background image
+          Positioned.fill(
             child: Image.asset(
               'assets/background_1.png',
               fit: BoxFit.cover,
             ),
           ),
 
-          Positioned.fill(                 // Aqui pongo un velo blanco encima de la imagen
+          // White overlay
+          Positioned.fill(
             child: Container(
               color: Colors.white.withOpacity(0.75),
             ),
           ),
 
+          // Building image at the bottom (behind content)
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: Image.asset(
+              'assets/background_building.png',
+              fit: BoxFit.contain,
+              alignment: Alignment.bottomCenter,
+            ),
+          ),
+
+          // Content on top
           SafeArea(
-            child: SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 25),
               child: Column(
                 children: [
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 25),
-                    child: Column(
-                      children: [
-                        const SizedBox(height: 80),
-                        // Logo and Title
-                        Column(
-                          children: [
-                            // ARTS Logo
-                            // Option 1: If you have a logo image file (e.g., assets/logo.png)
-                            Image.asset(
-                              'assets/logoBlue.png',
-                              width: 120,
-                              // height: 100,
-                              errorBuilder: (context, error, stackTrace) {
-                                // Fallback to text logo if image not found
-                                return Container(
-                                  width: 80,
-                                  height: 80,
-                                  decoration: const BoxDecoration(
-                                    color: Color(0xFF123157),
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: const Center(
-                                    child: Text(
-                                      'A',
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 48,
-                                        fontWeight: FontWeight.bold,
-                                        fontFamily: 'Inter',
-                                      ),
-                                    ),
-                                  ),
-                                );
-                              },
+                  const SizedBox(height: 60),
+                  
+                  // Logo
+                  Image.asset(
+                    'assets/logoBlue.png',
+                    width: 120,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Container(
+                        width: 80,
+                        height: 80,
+                        decoration: const BoxDecoration(
+                          color: Color(0xFF123157),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Center(
+                          child: Text(
+                            'A',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 48,
+                              fontWeight: FontWeight.bold,
+                              fontFamily: 'Inter',
                             ),
-                            const SizedBox(height: 50),
-                            
-
-                            // Coming Soon Message
-                        const Text(
-                          'We are working on new features to better protect you',
-                          textAlign: TextAlign.justify,
-                          style: TextStyle(
-                            color: Color(0xFF123157),
-                            fontSize: 16,
-                            fontStyle: FontStyle.italic,
-                            fontWeight: FontWeight.w600,
-                            fontFamily: 'Inter',
-                            height: 1.5,
                           ),
                         ),
-                            const SizedBox(height: 50),
+                      );
+                    },
+                  ),
+                  
+                  const SizedBox(height: 8),
+                  
+                  // // ARTS Text
+                  // const Text(
+                  //   'ARTS',
+                  //   style: TextStyle(
+                  //     color: Color(0xFF123157),
+                  //     fontSize: 32,
+                  //     fontWeight: FontWeight.bold,
+                  //     fontFamily: 'Inter',
+                  //     letterSpacing: 2,
+                  //   ),
+                  // ),
+                  
+                  // const SizedBox(height: 4),
+                  
+                  // // Subtitle
+                  // const Text(
+                  //   'Aerospace Risk\nTransfer Solutions',
+                  //   textAlign: TextAlign.center,
+                  //   style: TextStyle(
+                  //     color: Color(0xFF123157),
+                  //     fontSize: 14,
+                  //     fontWeight: FontWeight.w500,
+                  //     fontFamily: 'Inter',
+                  //     height: 1.4,
+                  //   ),
+                  // ),
+                  
+                  const Spacer(flex: 1),
 
-                            // ARTS Text
-                            const Text(
-                              'Coming soon...',
-                              style: TextStyle(
-                                color: Color(0xFF123157),
-                                fontSize: 20,
-                                fontStyle: FontStyle.italic,
-                                // fontWeight: FontWeight.bold,
-                                fontFamily: 'Inter',
-                                letterSpacing: 2,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            
-                            /* // Subtitle
-                            const Text(
-                              'Aerospace Risk\nTransfer Solutions',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                color: Color(0xFF123157),
-                                fontSize: 14,
-                                fontWeight: FontWeight.w500,
-                                fontFamily: 'Inter',
-                                height: 1.4,
-                              ),
-                            ), */
-                          ],
-                        ),
-                        
-                        
-                        
-                        const SizedBox(height: 70),
-                      ],
+                  // Message
+                  const Text(
+                    'We are working on new features to better protect you',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Color(0xFF123157),
+                      fontSize: 16,
+                      fontStyle: FontStyle.italic,
+                      fontWeight: FontWeight.w600,
+                      fontFamily: 'Inter',
+                      height: 1.5,
                     ),
                   ),
                   
-                  // Building Image - Sin padding para que cubra todo el ancho
-                  Transform.scale(
-                    scale: 1.1, // Escala al 150%
-                    alignment: Alignment(1.2,1),
-                    child: Image.asset(
-                      'assets/background_building.png',
-                      width: double.infinity,
-                      fit: BoxFit.cover,
+                  const SizedBox(height: 30),
+
+                  // Coming soon text
+                  const Text(
+                    'Coming soon...',
+                    style: TextStyle(
+                      color: Color(0xFF123157),
+                      fontSize: 16,
+                      fontStyle: FontStyle.italic,
+                      fontWeight: FontWeight.w600,
+                      fontFamily: 'Inter',
+                      letterSpacing: 2,
                     ),
-                  )
+                  ),
+                  
+                  const Spacer(flex: 3),
                 ],
               ),
             ),
           ),
         ],
       ),
-      bottomNavigationBar: const AppBottomNavigation(selectedIndex: 4),
+      bottomNavigationBar: const AppBottomNavigation(selectedIndex: 5),
     );
   }
 }

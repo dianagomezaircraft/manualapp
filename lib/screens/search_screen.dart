@@ -4,7 +4,7 @@ import '../services/auth_service.dart';
 import 'chapter_detail_screen.dart';
 import 'login_screen.dart';
 import '../widgets/app_bottom_navigation.dart';
-
+import 'section_detail_screen.dart';
 class SearchScreen extends StatefulWidget {
   final String? initialSearchTerm; // NUEVO: Término de búsqueda inicial
   
@@ -407,11 +407,26 @@ class _SearchScreenState extends State<SearchScreen> {
   }
 
   Widget _buildSearchResultItem(SearchResult result) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      child: InkWell(
-        onTap: () {
-          // Navigate to chapter detail with the chapter ID
+  return Container(
+    margin: const EdgeInsets.only(bottom: 16),
+    child: InkWell(
+      onTap: () {
+        // Navigate based on result type
+        if (result.type == 'content' && result.sectionId != null) {
+          // Navigate to section detail for content results
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => SectionDetailScreen(
+                sectionId: result.sectionId!,
+                title: result.sectionTitle ?? result.title,
+                description: null,
+                chapterTitle: result.chapterTitle,
+              ),
+            ),
+          );
+        } else {
+          // Navigate to chapter detail for chapter/section results
           Navigator.push(
             context,
             MaterialPageRoute(
@@ -422,97 +437,98 @@ class _SearchScreenState extends State<SearchScreen> {
               ),
             ),
           );
-        },
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              margin: const EdgeInsets.only(top: 4),
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: _getTypeColor(result.type).withOpacity(0.1),
-                border: Border.all(
-                  color: _getTypeColor(result.type).withOpacity(0.3),
-                ),
-                shape: BoxShape.circle,
+        }
+      },
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            margin: const EdgeInsets.only(top: 4),
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: _getTypeColor(result.type).withOpacity(0.1),
+              border: Border.all(
+                color: _getTypeColor(result.type).withOpacity(0.3),
               ),
-              child: Icon(
-                _getTypeIcon(result.type),
-                size: 20,
-                color: _getTypeColor(result.type),
-              ),
+              shape: BoxShape.circle,
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Chapter title
-                  Text(
-                    result.chapterTitle,
+            child: Icon(
+              _getTypeIcon(result.type),
+              size: 20,
+              color: _getTypeColor(result.type),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Chapter title
+                Text(
+                  result.chapterTitle,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontFamily: 'Inter',
+                    color: Colors.grey[500],
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                // Result title
+                Text(
+                  result.title,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    fontFamily: 'Inter',
+                    color: Colors.black87,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                // Result description/content
+                RichText(
+                  text: TextSpan(
                     style: TextStyle(
                       fontSize: 12,
                       fontFamily: 'Inter',
-                      color: Colors.grey[500],
-                      fontWeight: FontWeight.w500,
+                      color: Colors.grey[600],
+                      height: 1.4,
+                    ),
+                    children: _highlightKeyword(
+                      result.displayText,
+                      currentQuery,
                     ),
                   ),
-                  const SizedBox(height: 2),
-                  // Result title
-                  Text(
-                    result.title,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
+                ),
+                const SizedBox(height: 4),
+                // Type badge
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: _getTypeColor(result.type).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(
+                    result.typeDisplay,
+                    style: TextStyle(
+                      fontSize: 10,
                       fontFamily: 'Inter',
-                      color: Colors.black87,
+                      color: _getTypeColor(result.type),
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
-                  const SizedBox(height: 4),
-                  // Result description/content
-                  RichText(
-                    text: TextSpan(
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontFamily: 'Inter',
-                        color: Colors.grey[600],
-                        height: 1.4,
-                      ),
-                      children: _highlightKeyword(
-                        result.displayText,
-                        currentQuery,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  // Type badge
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 2,
-                    ),
-                    decoration: BoxDecoration(
-                      color: _getTypeColor(result.type).withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Text(
-                      result.typeDisplay,
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontFamily: 'Inter',
-                        color: _getTypeColor(result.type),
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
-    );
-  }
+    ),
+  );
+}
 
   IconData _getTypeIcon(String type) {
     switch (type) {
