@@ -6,6 +6,11 @@ class ComingSoonFeatures extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Obtener el ancho de la pantalla
+    final screenWidth = MediaQuery.of(context).size.width;
+    // Usar el MISMO padding que ComingSoonScreen - solo 25 en todos los dispositivos
+    final horizontalPadding = 25.0;
+    
     return Scaffold(
       extendBodyBehindAppBar: true,
       body: Stack(
@@ -37,103 +42,81 @@ class ComingSoonFeatures extends StatelessWidget {
             ),
           ),
 
-          // Content on top
-          SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 25),
-              child: Column(
-                children: [
-                  const SizedBox(height: 60),
-                  
-                  // Logo
-                  Image.asset(
-                    'assets/logoBlue.png',
-                    width: 120,
-                    errorBuilder: (context, error, stackTrace) {
-                      return Container(
-                        width: 80,
-                        height: 80,
-                        decoration: const BoxDecoration(
-                          color: Color(0xFF123157),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Center(
-                          child: Text(
-                            'A',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 48,
-                              fontWeight: FontWeight.bold,
-                              fontFamily: 'Inter',
+          // Content on top - Centrado con ancho máximo
+          Center(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                maxWidth: screenWidth > 600 ? 600 : screenWidth, // Ancho máximo en tablets
+              ),
+              child: SafeArea(
+                child: Padding(
+                  padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+                  child: Column(
+                    children: [
+                      const SizedBox(height: 60),
+                      
+                      // Logo
+                      Image.asset(
+                        'assets/logoBlue.png',
+                        width: 120,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Container(
+                            width: 80,
+                            height: 80,
+                            decoration: const BoxDecoration(
+                              color: Color(0xFF123157),
+                              shape: BoxShape.circle,
                             ),
-                          ),
+                            child: const Center(
+                              child: Text(
+                                'A',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 48,
+                                  fontWeight: FontWeight.bold,
+                                  fontFamily: 'Inter',
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                      
+                      const SizedBox(height: 30),
+
+                      // Message
+                      const Text(
+                        'We are working on new features to better protect you',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: Color(0xFF123157),
+                          fontSize: 16,
+                          fontStyle: FontStyle.italic,
+                          fontWeight: FontWeight.w600,
+                          fontFamily: 'Inter',
+                          height: 1.5,
                         ),
-                      );
-                    },
-                  ),
-                  
-                  const SizedBox(height: 8),
-                  
-                  // // ARTS Text
-                  // const Text(
-                  //   'ARTS',
-                  //   style: TextStyle(
-                  //     color: Color(0xFF123157),
-                  //     fontSize: 32,
-                  //     fontWeight: FontWeight.bold,
-                  //     fontFamily: 'Inter',
-                  //     letterSpacing: 2,
-                  //   ),
-                  // ),
-                  
-                  // const SizedBox(height: 4),
-                  
-                  // // Subtitle
-                  // const Text(
-                  //   'Aerospace Risk\nTransfer Solutions',
-                  //   textAlign: TextAlign.center,
-                  //   style: TextStyle(
-                  //     color: Color(0xFF123157),
-                  //     fontSize: 14,
-                  //     fontWeight: FontWeight.w500,
-                  //     fontFamily: 'Inter',
-                  //     height: 1.4,
-                  //   ),
-                  // ),
-                  
-                  const Spacer(flex: 1),
+                      ),
+                      
+                      const SizedBox(height: 30),
 
-                  // Message
-                  const Text(
-                    'We are working on new features to better protect you',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: Color(0xFF123157),
-                      fontSize: 16,
-                      fontStyle: FontStyle.italic,
-                      fontWeight: FontWeight.w600,
-                      fontFamily: 'Inter',
-                      height: 1.5,
-                    ),
+                      // Coming soon text
+                      const Text(
+                        'Coming soon...',
+                        style: TextStyle(
+                          color: Color(0xFF123157),
+                          fontSize: 16,
+                          fontStyle: FontStyle.italic,
+                          fontWeight: FontWeight.w600,
+                          fontFamily: 'Inter',
+                          letterSpacing: 2,
+                        ),
+                      ),
+                      
+                      const Spacer(flex: 2),
+                    ],
                   ),
-                  
-                  const SizedBox(height: 30),
-
-                  // Coming soon text
-                  const Text(
-                    'Coming soon...',
-                    style: TextStyle(
-                      color: Color(0xFF123157),
-                      fontSize: 16,
-                      fontStyle: FontStyle.italic,
-                      fontWeight: FontWeight.w600,
-                      fontFamily: 'Inter',
-                      letterSpacing: 2,
-                    ),
-                  ),
-                  
-                  const Spacer(flex: 3),
-                ],
+                ),
               ),
             ),
           ),
