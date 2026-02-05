@@ -52,7 +52,7 @@ class AppBottomNavigation extends StatelessWidget {
       case 4:
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (_) => const ComingSoonScreen()),
+          MaterialPageRoute(builder: (_) => const SettingsScreen()),
         );
         break;
     }
@@ -81,7 +81,7 @@ class AppBottomNavigation extends StatelessWidget {
               _navIcon(context, Icons.search, 1),
               _artsLogo(context, 2),
               _navIcon(context, Icons.phone_outlined, 3),
-              _artsClaims(context, 4),
+              _settings(context, Icons.settings,4),
             ],
           ),
         ),
@@ -131,6 +131,22 @@ class AppBottomNavigation extends StatelessWidget {
           'assets/claimIcon.png',
           width: 32,
           //height: 22,
+        ),
+      ),
+    );
+  }
+  Widget _settings(BuildContext context, IconData icon, int index) {
+    final isSelected = selectedIndex == index;
+
+    return InkWell(
+      borderRadius: BorderRadius.circular(8),
+      onTap: () => _onTap(context, index),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Icon(
+          icon,
+          size: 26,
+          color: isSelected ? const Color(0xFF123157) : Colors.grey,
         ),
       ),
     );
