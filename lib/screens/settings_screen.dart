@@ -35,14 +35,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
 
     final airlineId = userData['airlineId'];
-    if (airlineId == null) {
-      throw Exception('User has no airline assigned');
-    }
 
-    final airline = await _airlineService.getAirlineById(
-      airlineId: airlineId,
-      token: token,
-    );
+    // Si falla la carga de la aerolínea (ej: 403), no rompe toda la pantalla
+    Airline? airline;
+    if (airlineId != null) {
+      try {
+        airline = await _airlineService.getAirlineById(
+          airlineId: airlineId,
+          token: token,
+        );
+      } catch (_) {
+        airline = null;
+      }
+    }
 
     return _SettingsData(
       email: email,
@@ -54,17 +59,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-  backgroundColor: const Color(0xFF123157),
-  iconTheme: const IconThemeData(color: Colors.white),
-  title: const Text(
-    'Settings',
-    style: TextStyle(
-      color: Colors.white,
-      fontWeight: FontWeight.w600,
-    ),
-  ),
-),
-
+        backgroundColor: const Color(0xFF123157),
+        iconTheme: const IconThemeData(color: Colors.white),
+        title: const Text(
+          'Settings',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
       body: Padding(
         padding: const EdgeInsets.all(20),
         child: FutureBuilder<_SettingsData>(
@@ -78,6 +82,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               );
             }
 
+            // Error crítico (ej: no autenticado) — solo muestra el mensaje
             if (snapshot.hasError) {
               return Center(
                 child: Text(
@@ -96,34 +101,36 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 _sectionTitle('User'),
                 _infoTile('Email', data.email),
 
-                const SizedBox(height: 24),
-
-                _sectionTitle('Airline'),
-                _infoTile('Name', airline.name),
-                _infoTile('Code', airline.code),
-                _infoTile(
-                  'Status',
-                  airline.active ? 'Active' : 'Inactive',
-                ),
+                // Solo muestra la sección airline si cargó correctamente
+                if (airline != null) ...[
+                  const SizedBox(height: 24),
+                  _sectionTitle('Airline'),
+                  _infoTile('Name', airline.name),
+                  _infoTile('Code', airline.code),
+                  _infoTile(
+                    'Status',
+                    airline.active ? 'Active' : 'Inactive',
+                  ),
+                ],
 
                 const Spacer(),
 
+                // Logout siempre visible para usuarios autenticados
                 SizedBox(
                   width: double.infinity,
-                  child:ElevatedButton(
-  style: ElevatedButton.styleFrom(
-    backgroundColor: const Color(0xFF123157),
-    foregroundColor: Colors.white, // 🔥 clave
-    padding: const EdgeInsets.symmetric(vertical: 14),
-    textStyle: const TextStyle(
-      fontSize: 16,
-      fontWeight: FontWeight.w600,
-    ),
-  ),
-  onPressed: _logout,
-  child: const Text('Logout'),
-),
-
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF123157),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      textStyle: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    onPressed: _logout,
+                    child: const Text('Logout'),
+                  ),
                 ),
               ],
             );
@@ -185,13 +192,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 }
 
-/// Helper class to bundle screen data
+// airline es opcional: null si no cargó o si el rol no tiene acceso aún
 class _SettingsData {
   final String email;
-  final Airline airline;
+  final Airline? airline;
 
   _SettingsData({
     required this.email,
-    required this.airline,
+    this.airline,
   });
 }
