@@ -89,6 +89,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
         ),
       ),
+        backgroundColor: const Color(0xFF123157),
+        iconTheme: const IconThemeData(color: Colors.white),
+        title: const Text(
+          'Settings',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
       body: Padding(
         padding: const EdgeInsets.all(20),
         child: FutureBuilder<_SettingsData>(
@@ -100,6 +110,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               );
             }
 
+            // Error crítico (ej: no autenticado) — solo muestra el mensaje
             if (snapshot.hasError) {
               return Center(
                 child: Text(
@@ -154,6 +165,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 const Spacer(),
                 SizedBox(
                   width: double.infinity,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF123157),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      textStyle: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    onPressed: _logout,
+                    child: const Text('Logout'),
+                  ),
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF123157),
