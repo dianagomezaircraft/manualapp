@@ -5,9 +5,11 @@ import 'chapter_detail_screen.dart';
 import 'login_screen.dart';
 import '../widgets/app_bottom_navigation.dart';
 import 'section_detail_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
 class SearchScreen extends StatefulWidget {
   final String? initialSearchTerm; // NUEVO: Término de búsqueda inicial
-  
+
   const SearchScreen({
     super.key,
     this.initialSearchTerm,
@@ -21,28 +23,31 @@ class _SearchScreenState extends State<SearchScreen> {
   final TextEditingController _searchController = TextEditingController();
   final SearchService _searchService = SearchService();
   final AuthService _authService = AuthService();
-  
+
   int selectedBottomIndex = 1; // Search icon selected
-  
+
   List<SearchResult> searchResults = [];
   bool isSearching = false;
   bool hasSearched = false;
   String? errorMessage;
   String currentQuery = '';
+  List<String> _recentSearches = [];
 
   @override
   void initState() {
     super.initState();
-    
+    _loadRecentSearches();
+
     // NUEVO: Si hay término inicial, establecerlo y buscar
-    if (widget.initialSearchTerm != null && widget.initialSearchTerm!.isNotEmpty) {
+    if (widget.initialSearchTerm != null &&
+        widget.initialSearchTerm!.isNotEmpty) {
       _searchController.text = widget.initialSearchTerm!;
       // Ejecutar búsqueda después del build
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _performSearch();
       });
     }
-    
+
     // Add debounce to search
     _searchController.addListener(_onSearchChanged);
   }
@@ -65,9 +70,49 @@ class _SearchScreenState extends State<SearchScreen> {
     }
   }
 
+  Future<void> _loadRecentSearches() async {
+    final prefs = await SharedPreferences.getInstance();
+    final saved = prefs.getStringList('recent_searches') ?? [];
+    if (!mounted) return;
+    setState(() => _recentSearches = saved);
+  }
+
+  Future<void> _saveRecentSearch(String query) async {
+    if (query.isEmpty) return;
+    final prefs = await SharedPreferences.getInstance();
+
+    // Remove if already exists (move to top)
+    _recentSearches.remove(query);
+    _recentSearches.insert(0, query);
+
+    // Keep max 10
+    if (_recentSearches.length > 10) {
+      _recentSearches = _recentSearches.sublist(0, 10);
+    }
+
+    await prefs.setStringList('recent_searches', _recentSearches);
+    if (!mounted) return;
+    setState(() {});
+  }
+
+  Future<void> _removeRecentSearch(String query) async {
+    final prefs = await SharedPreferences.getInstance();
+    _recentSearches.remove(query);
+    await prefs.setStringList('recent_searches', _recentSearches);
+    if (!mounted) return;
+    setState(() {});
+  }
+
+  Future<void> _clearRecentSearches() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('recent_searches');
+    if (!mounted) return;
+    setState(() => _recentSearches = []);
+  }
+
   Future<void> _performSearch() async {
     final query = _searchController.text.trim();
-    
+
     if (query.isEmpty) {
       setState(() {
         searchResults = [];
@@ -76,6 +121,8 @@ class _SearchScreenState extends State<SearchScreen> {
       });
       return;
     }
+
+    await _saveRecentSearch(query);
 
     setState(() {
       isSearching = true;
@@ -309,31 +356,95 @@ class _SearchScreenState extends State<SearchScreen> {
     }
 
     // No search performed yet
+    // No search performed yet — show recent searches
     if (!hasSearched) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(20.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                Icons.search,
-                size: 64,
-                color: Colors.grey[300],
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'Enter a search term to find\nchapters, sections, and content',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Colors.grey[500],
-                  fontFamily: 'Inter',
+      if (_recentSearches.isEmpty) {
+        return Center(
+          child: Padding(
+            padding: const EdgeInsets.all(20.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.search, size: 64, color: Colors.grey[300]),
+                const SizedBox(height: 16),
+                Text(
+                  'Enter a search term to find\nchapters, sections, and content',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Colors.grey[500],
+                    fontFamily: 'Inter',
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
+        );
+      }
+
+      // ✅ Show recent searches list
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Recent Searches',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    fontFamily: 'Inter',
+                    color: Colors.black87,
+                  ),
+                ),
+                TextButton(
+                  onPressed: _clearRecentSearches,
+                  child: const Text(
+                    'Clear all',
+                    style: TextStyle(
+                      color: Color(0xFF123157),
+                      fontFamily: 'Inter',
+                      fontSize: 13,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: ListView.separated(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              itemCount: _recentSearches.length,
+              separatorBuilder: (_, __) => const Divider(height: 1),
+              itemBuilder: (context, index) {
+                final term = _recentSearches[index];
+                return ListTile(
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 4),
+                  leading: const Icon(Icons.history, color: Colors.grey),
+                  title: Text(
+                    term,
+                    style: const TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 14,
+                    ),
+                  ),
+                  trailing: IconButton(
+                    icon: const Icon(Icons.close, size: 18, color: Colors.grey),
+                    onPressed: () => _removeRecentSearch(term),
+                  ),
+                  onTap: () {
+                    // ✅ Tap to re-run the search
+                    _searchController.text = term;
+                    _performSearch();
+                  },
+                );
+              },
+            ),
+          ),
+        ],
       );
     }
 
@@ -407,128 +518,128 @@ class _SearchScreenState extends State<SearchScreen> {
   }
 
   Widget _buildSearchResultItem(SearchResult result) {
-  return Container(
-    margin: const EdgeInsets.only(bottom: 16),
-    child: InkWell(
-      onTap: () {
-        // Navigate based on result type
-        if (result.type == 'content' && result.sectionId != null) {
-          // Navigate to section detail for content results
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => SectionDetailScreen(
-                sectionId: result.sectionId!,
-                title: result.sectionTitle ?? result.title,
-                description: null,
-                chapterTitle: result.chapterTitle,
-              ),
-            ),
-          );
-        } else {
-          // Navigate to chapter detail for chapter/section results
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => ChapterDetailScreen(
-                chapterTitle: result.chapterTitle,
-                chapterNumber: 'CHAPTER',
-                chapterId: result.chapterId,
-              ),
-            ),
-          );
-        }
-      },
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            margin: const EdgeInsets.only(top: 4),
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: _getTypeColor(result.type).withOpacity(0.1),
-              border: Border.all(
-                color: _getTypeColor(result.type).withOpacity(0.3),
-              ),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              _getTypeIcon(result.type),
-              size: 20,
-              color: _getTypeColor(result.type),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Chapter title
-                Text(
-                  result.chapterTitle,
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontFamily: 'Inter',
-                    color: Colors.grey[500],
-                    fontWeight: FontWeight.w500,
-                  ),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      child: InkWell(
+        onTap: () {
+          // Navigate based on result type
+          if (result.type == 'content' && result.sectionId != null) {
+            // Navigate to section detail for content results
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => SectionDetailScreen(
+                  sectionId: result.sectionId!,
+                  title: result.sectionTitle ?? result.title,
+                  description: null,
+                  chapterTitle: result.chapterTitle,
                 ),
-                const SizedBox(height: 2),
-                // Result title
-                Text(
-                  result.title,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    fontFamily: 'Inter',
-                    color: Colors.black87,
-                  ),
+              ),
+            );
+          } else {
+            // Navigate to chapter detail for chapter/section results
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => ChapterDetailScreen(
+                  chapterTitle: result.chapterTitle,
+                  chapterNumber: 'CHAPTER',
+                  chapterId: result.chapterId,
                 ),
-                const SizedBox(height: 4),
-                // Result description/content
-                RichText(
-                  text: TextSpan(
+              ),
+            );
+          }
+        },
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              margin: const EdgeInsets.only(top: 4),
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: _getTypeColor(result.type).withOpacity(0.1),
+                border: Border.all(
+                  color: _getTypeColor(result.type).withOpacity(0.3),
+                ),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                _getTypeIcon(result.type),
+                size: 20,
+                color: _getTypeColor(result.type),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Chapter title
+                  Text(
+                    result.chapterTitle,
                     style: TextStyle(
                       fontSize: 12,
                       fontFamily: 'Inter',
-                      color: Colors.grey[600],
-                      height: 1.4,
-                    ),
-                    children: _highlightKeyword(
-                      result.displayText,
-                      currentQuery,
+                      color: Colors.grey[500],
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
-                ),
-                const SizedBox(height: 4),
-                // Type badge
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 2,
-                  ),
-                  decoration: BoxDecoration(
-                    color: _getTypeColor(result.type).withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: Text(
-                    result.typeDisplay,
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontFamily: 'Inter',
-                      color: _getTypeColor(result.type),
+                  const SizedBox(height: 2),
+                  // Result title
+                  Text(
+                    result.title,
+                    style: const TextStyle(
+                      fontSize: 14,
                       fontWeight: FontWeight.w600,
+                      fontFamily: 'Inter',
+                      color: Colors.black87,
                     ),
                   ),
-                ),
-              ],
+                  const SizedBox(height: 4),
+                  // Result description/content
+                  RichText(
+                    text: TextSpan(
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontFamily: 'Inter',
+                        color: Colors.grey[600],
+                        height: 1.4,
+                      ),
+                      children: _highlightKeyword(
+                        result.displayText,
+                        currentQuery,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  // Type badge
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: _getTypeColor(result.type).withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(
+                      result.typeDisplay,
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontFamily: 'Inter',
+                        color: _getTypeColor(result.type),
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
-    ),
-  );
-}
+    );
+  }
 
   IconData _getTypeIcon(String type) {
     switch (type) {

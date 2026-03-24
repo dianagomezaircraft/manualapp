@@ -4,7 +4,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../config/api_config.dart';
 
 class AuthService {
-
   // Login
   Future<Map<String, dynamic>> login(String email, String password) async {
     try {
@@ -136,8 +135,12 @@ class AuthService {
   // Logout
   Future<void> logout() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('accessToken');
-    await prefs.remove('refreshToken');
+    final biometricEnabled = prefs.getBool('biometric_enabled') ?? false;
+    print('biometric enabled ${biometricEnabled}');
+    if (!biometricEnabled) {
+      await prefs.remove('accessToken');
+      await prefs.remove('refreshToken');
+    }
     await prefs.remove('user');
     await prefs.remove('userName');
     await prefs.remove('userEmail');
@@ -153,6 +156,49 @@ class AuthService {
       return jsonDecode(userJson);
     }
     return null;
+  }
+
+  Future<Map<String, dynamic>> refreshSession() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final refreshToken = prefs.getString('refreshToken');
+
+      if (refreshToken == null || refreshToken.isEmpty) {
+        return {'success': false, 'error': 'No refresh token available'};
+      }
+
+      final response = await http.post(
+        Uri.parse('${ApiConfig.baseUrl}/auth/refresh'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'refreshToken': refreshToken}),
+      );
+
+      final responseData = jsonDecode(response.body);
+
+      if (response.statusCode == 200 && responseData['success'] == true) {
+        // ✅ Unwrap 'data' first — same structure as login
+        final data = responseData['data'];
+
+        await prefs.setString('accessToken', data['accessToken']);
+        await prefs.setString('refreshToken', data['refreshToken']);
+
+        // ✅ Restore user data so getUserName() works
+        if (data['user'] != null) {
+          await _saveUserData(data['user']); // reuse existing private method
+        }
+
+        return {'success': true};
+      } else {
+        await prefs.remove('refreshToken');
+        await prefs.setBool('has_logged_in_before', false);
+        return {
+          'success': false,
+          'error': responseData['error'] ?? 'Session expired'
+        };
+      }
+    } catch (e) {
+      return {'success': false, 'error': e.toString()};
+    }
   }
 
   // Refresh access token
@@ -204,6 +250,71 @@ class AuthService {
       return {
         'success': false,
         'error': 'Network error: ${e.toString()}',
+      };
+    }
+  }
+
+  // En lib/services/auth_service.dart, agregar estos métodos:
+
+  Future<Map<String, dynamic>> requestPasswordReset(String email) async {
+    try {
+      final response = await http.post(
+        Uri.parse('${ApiConfig.baseUrl}/auth/password-reset-request'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({'email': email}),
+      );
+
+      final data = json.decode(response.body);
+
+      if (response.statusCode == 200 && data['success']) {
+        return {
+          'success': true,
+          'message': data['message'],
+          'devToken': data['devToken'], // Para desarrollo
+        };
+      } else {
+        return {
+          'success': false,
+          'error': data['error'] ?? 'Failed to send reset email',
+        };
+      }
+    } catch (e) {
+      return {
+        'success': false,
+        'error': 'Network error. Please try again.',
+      };
+    }
+  }
+
+  Future<Map<String, dynamic>> resetPassword(
+      String token, String newPassword) async {
+    try {
+      final response = await http.post(
+        Uri.parse('${ApiConfig.baseUrl}/auth/password-reset'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'token': token,
+          'newPassword': newPassword,
+        }),
+      );
+
+      final data = json.decode(response.body);
+
+      if (response.statusCode == 200 && data['success']) {
+        return {
+          'success': true,
+          'message': data['message'],
+        };
+      } else {
+        return {
+          'success': false,
+          'error': data['error'] ?? 'Failed to reset password',
+        };
+      }
+    } catch (e) {
+      return {
+        'success': false,
+        'error': 'Network error. Please try again.',
       };
     }
   }

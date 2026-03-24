@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:local_auth/local_auth.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../services/auth_service.dart';
+import '../services/biometric_service.dart';
 import 'category_screen.dart';
+import 'forgot_password_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -14,69 +18,122 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final AuthService _authService = AuthService();
+  final BiometricService _biometricService = BiometricService();
 
   bool _isLoading = false;
+  bool _showBiometricButton = false;
+  bool _biometricTriggered = false;
   String? _errorMessage;
 
+  @override
+  void initState() {
+    super.initState();
+    _checkBiometricAvailability();
+  }
+
+  Future<void> _checkBiometricAvailability() async {
+    final prefs = await SharedPreferences.getInstance();
+    final biometricEnabled = prefs.getBool('biometric_enabled') ?? false;
+    final hasLoggedInBefore =
+        prefs.getBool('has_logged_in_before') ?? false; // ✅
+    final isAvailable = await _biometricService.isAvailable();
+
+    if (!mounted) return;
+
+    if (biometricEnabled && isAvailable && hasLoggedInBefore) {
+      setState(() => _showBiometricButton = true);
+
+      if (!_biometricTriggered) {
+        _biometricTriggered = true;
+        _authenticateWithBiometrics();
+      }
+    }
+  }
+
+  Future<void> _authenticateWithBiometrics() async {
+    setState(() {
+      _errorMessage = null;
+      _isLoading = true;
+    });
+
+    final success = await _biometricService.authenticate();
+    if (!mounted) return;
+
+    if (success) {
+      // ✅ Use refresh token to get a new access token
+      final result = await _authService.refreshSession();
+
+      if (!mounted) return;
+
+      if (result['success']) {
+        final userName = await _authService.getUserName();
+        if (!mounted) return;
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => CategoryScreen(userName: userName),
+          ),
+        );
+      } else {
+        // Refresh token also expired — force full login
+        setState(() {
+          _errorMessage = 'Session expired. Please login with your password.';
+          _isLoading = false;
+        });
+      }
+    } else {
+      setState(() {
+        _errorMessage = 'Biometric authentication failed or cancelled.';
+        _isLoading = false;
+      });
+    }
+  }
+
   Future<void> _handleLogin() async {
-  // Clear previous error
-  setState(() {
-    _errorMessage = null;
-    _isLoading = true;
-  });
-
-  final email = _emailController.text.trim();
-  final password = _passwordController.text.trim();
-
-  // Validation
-  if (email.isEmpty || password.isEmpty) {
     setState(() {
-      _errorMessage = 'Please enter email and password';
-      _isLoading = false;
+      _errorMessage = null;
+      _isLoading = true;
     });
-    return;
+
+    final email = _emailController.text.trim();
+    final password = _passwordController.text.trim();
+
+    if (email.isEmpty || password.isEmpty) {
+      setState(() {
+        _errorMessage = 'Please enter email and password';
+        _isLoading = false;
+      });
+      return;
+    }
+
+    if (!_isValidEmail(email)) {
+      setState(() {
+        _errorMessage = 'Please enter a valid email';
+        _isLoading = false;
+      });
+      return;
+    }
+
+    final result = await _authService.login(email, password);
+    if (!mounted) return;
+    setState(() => _isLoading = false);
+
+    if (result['success']) {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('has_logged_in_before', true);
+
+      final userName = await _authService.getUserName();
+      if (!mounted) return;
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => CategoryScreen(userName: userName),
+        ),
+      );
+    } else {
+      setState(() => _errorMessage = result['error']);
+    }
   }
-
-  if (!_isValidEmail(email)) {
-    setState(() {
-      _errorMessage = 'Please enter a valid email';
-      _isLoading = false;
-    });
-    return;
-  }
-
-  // Call API
-  final result = await _authService.login(email, password);
-  
-  if (!mounted) return;
-
-  setState(() {
-    _isLoading = false;
-  });
-
-  if (result['success']) {
-    // El nombre ya está guardado en SharedPreferences por AuthService
-    final userName = await _authService.getUserName(); // <-- ESTE AWAIT ES EL PROBLEMA
-    
- 
-    
-    // Navigate to CategoryScreen
-    if (!mounted) return; // Verifica mounted después del await
-    
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(
-        builder: (context) => CategoryScreen(userName: userName),
-      ),
-    );
-    
-  } else {
-    // Show error
-    setState(() {
-      _errorMessage = result['error'];
-    });
-  }
-}
 
   bool _isValidEmail(String email) {
     return RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(email);
@@ -103,17 +160,7 @@ class _LoginScreenState extends State<LoginScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // Logo
-                  /*SvgPicture.asset(
-                    'assets/logoARTSWhite.svg',
-                    width: 140,
-                    height: 40,
-                  ),*/
-                  Image.asset(
-                    'assets/logoWhite.png',
-                    width: 160,
-                    height: 195,
-                  ),
+                  Image.asset('assets/logoWhite.png', width: 160, height: 195),
                   const SizedBox(height: 16),
                   const Text(
                     'Aerospace Risk\nTransfer Solutions',
@@ -126,8 +173,6 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                   const SizedBox(height: 40),
-
-                  // Login Card
                   Container(
                     padding: const EdgeInsets.all(32),
                     decoration: BoxDecoration(
@@ -149,7 +194,6 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                         const SizedBox(height: 32),
 
-                        // Error Message
                         if (_errorMessage != null)
                           Container(
                             padding: const EdgeInsets.all(12),
@@ -178,7 +222,6 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                           ),
 
-                        // Email Field
                         TextField(
                           controller: _emailController,
                           keyboardType: TextInputType.emailAddress,
@@ -196,7 +239,6 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                         const SizedBox(height: 16),
 
-                        // Password Field
                         TextField(
                           controller: _passwordController,
                           obscureText: true,
@@ -213,7 +255,6 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                         const SizedBox(height: 24),
 
-                        // Login Button
                         ElevatedButton(
                           onPressed: _isLoading ? null : _handleLogin,
                           style: ElevatedButton.styleFrom(
@@ -244,15 +285,50 @@ class _LoginScreenState extends State<LoginScreen> {
                                   ),
                                 ),
                         ),
-                        const SizedBox(height: 16),
 
-                        // Forgot Password
+                        // ✅ Biometric button - mostrar cuando esté habilitado y haya token guardado
+                        if (_showBiometricButton) ...[
+                          const SizedBox(height: 16),
+                          OutlinedButton.icon(
+                            onPressed: _isLoading
+                                ? null
+                                : () {
+                                    _biometricTriggered =
+                                        false; // ✅ allow retry on manual tap
+                                    _authenticateWithBiometrics();
+                                  },
+                            icon: const Icon(Icons.fingerprint,
+                                color: Color(0xFF123157)),
+                            label: const Text(
+                              'Use Biometrics',
+                              style: TextStyle(
+                                color: Color(0xFF123157),
+                                fontFamily: 'Inter',
+                              ),
+                            ),
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              side: const BorderSide(color: Color(0xFF123157)),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                          ),
+                        ],
+
+                        const SizedBox(height: 16),
                         Center(
                           child: TextButton(
                             onPressed: _isLoading
                                 ? null
                                 : () {
-                                    // TODO: Implement forgot password
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) =>
+                                            const ForgotPasswordScreen(),
+                                      ),
+                                    );
                                   },
                             child: const Text(
                               'Forgot Password?',

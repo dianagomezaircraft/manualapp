@@ -1,19 +1,91 @@
 import 'package:flutter/material.dart';
 import 'screens/category_screen.dart';
 import 'screens/login_screen.dart';
+import 'screens/reset_password_screen.dart';
 import 'services/auth_service.dart';
+import 'package:app_links/app_links.dart';
+
+import 'dart:async';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   runApp(const ARTSClaimsApp());
 }
 
-class ARTSClaimsApp extends StatelessWidget {
+class ARTSClaimsApp extends StatefulWidget {
   const ARTSClaimsApp({super.key});
+
+  @override
+  State<ARTSClaimsApp> createState() => _ARTSClaimsAppState();
+}
+
+class _ARTSClaimsAppState extends State<ARTSClaimsApp> {
+  // GlobalKey para navegación desde cualquier lugar
+  final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
+  StreamSubscription? _linkSubscription;
+
+  @override
+  void initState() {
+    super.initState();
+    //Solo inicializar deep links si NO es web
+    if (!kIsWeb) {
+      _initDeepLinks();
+    } else {
+      debugPrint('🌐 Running on Web - Deep links disabled');
+    }
+  }
+
+  final _appLinks = AppLinks();
+
+  Future<void> _initDeepLinks() async {
+    // Handle deep link when app is opened from closed
+    final uri = await _appLinks.getInitialLink();
+    if (uri != null) _handleDeepLink(uri);
+
+    // Handle deep links while app is running
+    _linkSubscription = _appLinks.uriLinkStream.listen((uri) {
+      _handleDeepLink(uri);
+    }, onError: (err) {
+      debugPrint('❌ Error handling deep link: $err');
+    });
+  }
+
+  // ✅ Procesar deep link
+  void _handleDeepLink(Uri uri) {
+    debugPrint('📱 Deep link recibido: $uri');
+
+    // artsclaims://reset-password?token=abc123
+    if (uri.host == 'reset-password') {
+      final token = uri.queryParameters['token'];
+
+      if (token != null && token.isNotEmpty) {
+        debugPrint('✅ Token de reset encontrado: ${token.substring(0, 10)}...');
+
+        // Navegar a ResetPasswordScreen
+        navigatorKey.currentState?.push(
+          MaterialPageRoute(
+            builder: (context) => ResetPasswordScreen(token: token),
+          ),
+        );
+      } else {
+        debugPrint('❌ No se encontró token en el deep link');
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _linkSubscription?.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'ARTS Claims',
+      navigatorKey: navigatorKey, // ✅ Key para navegación global
       theme: ThemeData(
         primarySwatch: Colors.blue,
         useMaterial3: true,
@@ -50,19 +122,29 @@ class _SplashScreenState extends State<SplashScreen> {
     if (!mounted) return;
 
     if (isLoggedIn) {
-      final userName = await _authService.getUserName();
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (context) => CategoryScreen(userName: userName),
-        ),
-      );
+      final prefs = await SharedPreferences.getInstance();
+      final biometricEnabled = prefs.getBool('biometric_enabled') ?? false;
+
+      // If biometrics enabled, go to LoginScreen — it will auto-prompt biometrics
+      // If not, go straight to CategoryScreen
+      if (biometricEnabled) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const LoginScreen()),
+        );
+      } else {
+        final userName = await _authService.getUserName();
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => CategoryScreen(userName: userName),
+          ),
+        );
+      }
     } else {
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(
-          builder: (context) => const LoginScreen(),
-        ),
+        MaterialPageRoute(builder: (context) => const LoginScreen()),
       );
     }
   }
@@ -91,15 +173,6 @@ class _SplashScreenState extends State<SplashScreen> {
                 height: 195,
               ),
               const SizedBox(height: 16),
-              /*const Text(
-                'ARTS Claims',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  fontFamily: 'Inter',
-                ),
-              ),*/
             ],
           ),
         ),
