@@ -177,7 +177,7 @@ class _ChapterDetailScreenState extends State<ChapterDetailScreen> {
           ),
         ),
       ),
-      bottomNavigationBar: const AppBottomNavigation(selectedIndex: 5),
+      bottomNavigationBar: const AppBottomNavigation(selectedIndex: -1),
     );
   }
 

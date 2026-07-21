@@ -124,7 +124,7 @@ class ComingSoonScreen extends StatelessWidget {
           ),
         ],
       ),
-      bottomNavigationBar: const AppBottomNavigation(selectedIndex: 4),
+      bottomNavigationBar: const AppBottomNavigation(selectedIndex: -1),
     );
   }
 }

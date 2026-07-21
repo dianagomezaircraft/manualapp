@@ -122,7 +122,7 @@ class ComingSoonFeatures extends StatelessWidget {
           ),
         ],
       ),
-      bottomNavigationBar: const AppBottomNavigation(selectedIndex: 5),
+      bottomNavigationBar: const AppBottomNavigation(selectedIndex: -1),
     );
   }
 }

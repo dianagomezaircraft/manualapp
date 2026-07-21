@@ -405,7 +405,7 @@ class _SectionDetailScreenState extends State<SectionDetailScreen> {
           ),
         ],
       ),
-      bottomNavigationBar: const AppBottomNavigation(selectedIndex: 5),
+      bottomNavigationBar: const AppBottomNavigation(selectedIndex: -1),
     );
   }
 }
