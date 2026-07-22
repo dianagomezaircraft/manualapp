@@ -684,14 +684,14 @@ class _ClientPortalScreenState extends State<ClientPortalScreen> {
                       ),
                     ),
                     const SizedBox(height: 2),
-                    Text(
-                      _embedHint ?? 'Sofema Aviation',
-                      style: TextStyle(
-                        color: Colors.grey[600],
-                        fontSize: 12,
-                        fontFamily: 'Inter',
-                      ),
-                    ),
+                    // Text(
+                    //   _embedHint ?? 'Sofema Aviation',
+                    //   style: TextStyle(
+                    //     color: Colors.grey[600],
+                    //     fontSize: 12,
+                    //     fontFamily: 'Inter',
+                    //   ),
+                    // ),
                   ],
                 ),
               ),
