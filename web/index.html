@@ -31,6 +31,17 @@
 
   <title>arts_claims_app</title>
   <link rel="manifest" href="manifest.json">
+  <style>
+    /* Let HtmlElementView iframes receive click/scroll on Flutter web */
+    flt-platform-view,
+    flt-platform-view-slot {
+      pointer-events: auto !important;
+    }
+    flt-platform-view iframe {
+      pointer-events: auto !important;
+      touch-action: auto !important;
+    }
+  </style>
 </head>
 <body>
   <script src="flutter_bootstrap.js" async></script>

@@ -6,7 +6,6 @@ import '../screens/search_screen.dart';
 import '../screens/contact_details_screen.dart';
 import '../screens/about_us_screen.dart';
 import '../screens/settings_screen.dart';
-import '../screens/client_portal_screen.dart';
 
 class AppBottomNavigation extends StatelessWidget {
   final int selectedIndex;
@@ -52,13 +51,6 @@ class AppBottomNavigation extends StatelessWidget {
       case 4:
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (_) => const ClientPortalScreen()),
-        );
-        break;
-
-      case 5:
-        Navigator.push(
-          context,
           MaterialPageRoute(builder: (_) => const SettingsScreen()),
         );
         break;
@@ -80,7 +72,7 @@ class AppBottomNavigation extends StatelessWidget {
       ),
       child: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
@@ -88,8 +80,7 @@ class AppBottomNavigation extends StatelessWidget {
               _navIcon(context, Icons.search, 1),
               _artsLogo(context, 2),
               _navIcon(context, Icons.phone_outlined, 3),
-              _portalIcon(context, 4),
-              _navIcon(context, Icons.settings, 5),
+              _navIcon(context, Icons.settings, 4),
             ],
           ),
         ),
@@ -104,26 +95,9 @@ class AppBottomNavigation extends StatelessWidget {
       borderRadius: BorderRadius.circular(8),
       onTap: () => _onTap(context, index),
       child: Padding(
-        padding: const EdgeInsets.all(10),
+        padding: const EdgeInsets.all(12),
         child: Icon(
           icon,
-          size: 26,
-          color: isSelected ? const Color(0xFF123157) : Colors.grey,
-        ),
-      ),
-    );
-  }
-
-  Widget _portalIcon(BuildContext context, int index) {
-    final isSelected = selectedIndex == index;
-
-    return InkWell(
-      borderRadius: BorderRadius.circular(8),
-      onTap: () => _onTap(context, index),
-      child: Padding(
-        padding: const EdgeInsets.all(10),
-        child: Icon(
-          Icons.school_outlined,
           size: 26,
           color: isSelected ? const Color(0xFF123157) : Colors.grey,
         ),
@@ -139,8 +113,8 @@ class AppBottomNavigation extends StatelessWidget {
         padding: const EdgeInsets.all(8),
         child: Image.asset(
           'assets/logoBlue.png',
-          width: 64,
-          height: 64,
+          width: 73,
+          height: 72,
         ),
       ),
     );

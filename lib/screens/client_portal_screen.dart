@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart' show kDebugMode, kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
@@ -15,6 +16,9 @@ class ClientPortalScreen extends StatefulWidget {
   const ClientPortalScreen({super.key});
 
   static const String sofemaOrigin = 'https://sofemaaviation.com';
+
+  static const _prefsAccess = 'sofema_access_token';
+  static const _prefsRefresh = 'sofema_refresh_token';
 
   @override
   State<ClientPortalScreen> createState() => _ClientPortalScreenState();
@@ -41,7 +45,6 @@ class _ClientPortalScreenState extends State<ClientPortalScreen> {
 
   String? _proxyOrigin;
   String? _gateError;
-  String? _embedHint;
   String? _loadError;
   String? _accessToken;
   String? _refreshToken;
@@ -77,6 +80,7 @@ class _ClientPortalScreenState extends State<ClientPortalScreen> {
 
     final ready = await _proxyReady(origin);
     if (!mounted) return;
+
     setState(() {
       _proxyOrigin = ready ? origin : null;
       _embedReady = ready;
@@ -86,29 +90,65 @@ class _ClientPortalScreenState extends State<ClientPortalScreen> {
             'Sofema proxy is offline. Start serve_portal.py (or check your Render service), then try again.';
       }
     });
+
+    if (ready) {
+      await _restoreSessionIfAny();
+    }
+  }
+
+  Future<void> _restoreSessionIfAny() async {
+    final prefs = await SharedPreferences.getInstance();
+    final access = prefs.getString(ClientPortalScreen._prefsAccess);
+    final refresh = prefs.getString(ClientPortalScreen._prefsRefresh) ?? '';
+    if (access == null || access.isEmpty) return;
+    if (!mounted || _proxyOrigin == null) return;
+
+    setState(() {
+      _accessToken = access;
+      _refreshToken = refresh;
+      _unlocked = true;
+      _isLoading = true;
+      _gateError = null;
+    });
+    await _bootSession(access, refresh);
+  }
+
+  Future<void> _saveSession(String access, String refresh) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(ClientPortalScreen._prefsAccess, access);
+    await prefs.setString(ClientPortalScreen._prefsRefresh, refresh);
+  }
+
+  Future<void> _clearSession() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(ClientPortalScreen._prefsAccess);
+    await prefs.remove(ClientPortalScreen._prefsRefresh);
+    if (!mounted) return;
+    setState(() {
+      _unlocked = false;
+      _accessToken = null;
+      _refreshToken = null;
+      _webController = null;
+      _webViewFailed = false;
+      _isLoading = false;
+      _passwordController.clear();
+    });
   }
 
   String? _resolveProxyOrigin() {
-    final configured = ApiConfig.sofemaProxyOrigin.trim().replaceAll(
+    final configured = ApiConfig.sofemaProxyProduction.trim().replaceAll(
       RegExp(r'/$'),
       '',
     );
-    if (configured.isNotEmpty &&
-        !configured.contains('REPLACE_WITH_RENDER_URL')) {
-      return configured;
-    }
+    final hasRemoteProxy = configured.isNotEmpty &&
+        !configured.contains('REPLACE_WITH_RENDER_URL') &&
+        !configured.contains('localhost');
 
-    if (kIsWeb) {
-      final host = Uri.base.host;
-      if (host == 'localhost' || host == '127.0.0.1') {
-        return ApiConfig.sofemaProxyLocal;
-      }
-    }
+    // Prefer the deployed Render proxy (works for local Flutter web + Firebase).
+    if (hasRemoteProxy) return configured;
 
-    if (kDebugMode) {
-      return ApiConfig.sofemaProxyLocal;
-    }
-
+    // Explicit local proxy only when SOFEMA_PROXY points at localhost / unset remote.
+    if (kIsWeb || kDebugMode) return ApiConfig.sofemaProxyLocal;
     return null;
   }
 
@@ -116,13 +156,9 @@ class _ClientPortalScreenState extends State<ClientPortalScreen> {
     try {
       final res = await http
           .get(Uri.parse('$origin/healthz'))
-          .timeout(const Duration(seconds: 4));
+          .timeout(const Duration(seconds: 12));
       return res.statusCode == 200;
     } catch (_) {
-      if (kIsWeb) {
-        final host = Uri.base.host;
-        return host == 'localhost' || host == '127.0.0.1';
-      }
       return false;
     }
   }
@@ -175,9 +211,9 @@ class _ClientPortalScreenState extends State<ClientPortalScreen> {
         _unlocked = true;
         _signingIn = false;
         _isLoading = true;
-        _embedHint = 'Embedded via Sofema proxy';
       });
 
+      await _saveSession(access, refresh);
       await _bootSession(access, refresh);
     } catch (e) {
       if (!mounted) return;
@@ -302,8 +338,13 @@ class _ClientPortalScreenState extends State<ClientPortalScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final keyboardInset = MediaQuery.viewInsetsOf(context).bottom;
+    final keyboardOpen = keyboardInset > 0;
+
     return Scaffold(
-      bottomNavigationBar: const AppBottomNavigation(selectedIndex: 4),
+      resizeToAvoidBottomInset: true,
+      bottomNavigationBar:
+          keyboardOpen ? null : const AppBottomNavigation(selectedIndex: -1),
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
@@ -316,10 +357,19 @@ class _ClientPortalScreenState extends State<ClientPortalScreen> {
           bottom: false,
           child: Column(
             children: [
-              _buildIntro(),
+              if (!_unlocked && !keyboardOpen) _buildIntro(),
+              if (!_unlocked && keyboardOpen)
+                const SizedBox(height: 8)
+              else if (_unlocked)
+                _buildIntro(),
               Expanded(
                 child: Container(
-                  margin: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+                  margin: EdgeInsets.fromLTRB(
+                    12,
+                    0,
+                    12,
+                    keyboardOpen ? 8 : 12,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(24),
@@ -331,7 +381,8 @@ class _ClientPortalScreenState extends State<ClientPortalScreen> {
                       ),
                     ],
                   ),
-                  clipBehavior: Clip.antiAlias,
+                  // Clip breaks HtmlElementView hit-testing/scroll on Flutter web.
+                  clipBehavior: _unlocked ? Clip.none : Clip.antiAlias,
                   child: _unlocked ? _buildWorkspace() : _buildGate(),
                 ),
               ),
@@ -418,157 +469,174 @@ class _ClientPortalScreenState extends State<ClientPortalScreen> {
       return const Center(child: CircularProgressIndicator(color: _navy));
     }
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(24, 28, 24, 28),
-      child: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 420),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const Text(
-                  'Sofema Aviation',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: _gold,
-                    fontSize: 12,
-                    letterSpacing: 1.2,
-                    fontWeight: FontWeight.w600,
-                    fontFamily: 'Inter',
-                  ),
-                ),
-                const SizedBox(height: 10),
-                const Text(
-                  'Enter your Sofema credentials to access the courses',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: _navy,
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                    fontFamily: 'Inter',
-                    height: 1.25,
-                  ),
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  'Use the login provided for the AI² Safety Summit in Türkiye.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: Colors.grey[600],
-                    fontSize: 13,
-                    fontFamily: 'Inter',
-                    height: 1.4,
-                  ),
-                ),
-                const SizedBox(height: 28),
-                TextField(
-                  controller: _emailController,
-                  keyboardType: TextInputType.emailAddress,
-                  autofillHints: const [AutofillHints.username],
-                  enabled: !_signingIn,
-                  decoration: InputDecoration(
-                    labelText: 'Email',
-                    hintText: 'you@company.com',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    filled: true,
-                    fillColor: Colors.grey[100],
-                  ),
-                  onSubmitted: (_) => _handleLogin(),
-                ),
-                const SizedBox(height: 14),
-                TextField(
-                  controller: _passwordController,
-                  obscureText: _obscurePassword,
-                  autofillHints: const [AutofillHints.password],
-                  enabled: !_signingIn,
-                  decoration: InputDecoration(
-                    labelText: 'Password',
-                    hintText: '••••••••',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    filled: true,
-                    fillColor: Colors.grey[100],
-                    suffixIcon: IconButton(
-                      icon: Icon(
-                        _obscurePassword
-                            ? Icons.visibility_outlined
-                            : Icons.visibility_off_outlined,
-                        color: _navy,
-                      ),
-                      onPressed: () => setState(
-                        () => _obscurePassword = !_obscurePassword,
-                      ),
-                    ),
-                  ),
-                  onSubmitted: (_) => _handleLogin(),
-                ),
-                if (_gateError != null) ...[
-                  const SizedBox(height: 14),
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.red[50],
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.red[200]!),
-                    ),
-                    child: Text(
-                      _gateError!,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: Colors.red[700],
-                        fontSize: 13,
-                        fontFamily: 'Inter',
-                      ),
-                    ),
-                  ),
-                ],
-                const SizedBox(height: 22),
-                ElevatedButton(
-                  onPressed: _signingIn ? null : _handleLogin,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: _gold,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    disabledBackgroundColor: Colors.grey[400],
-                  ),
-                  child: _signingIn
-                      ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            valueColor:
-                                AlwaysStoppedAnimation<Color>(Colors.white),
+    final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
+
+    return GestureDetector(
+      onTap: () => FocusScope.of(context).unfocus(),
+      behavior: HitTestBehavior.opaque,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          return SingleChildScrollView(
+            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+            padding: EdgeInsets.fromLTRB(24, 20, 24, 28 + bottomInset),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: constraints.maxHeight),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 420),
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Text(
+                          'Sofema Aviation',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: _gold,
+                            fontSize: 12,
+                            letterSpacing: 1.2,
+                            fontWeight: FontWeight.w600,
+                            fontFamily: 'Inter',
                           ),
-                        )
-                      : const Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              'Login',
+                        ),
+                        const SizedBox(height: 10),
+                        const Text(
+                          'Enter your Sofema credentials to access the courses',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: _navy,
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                            fontFamily: 'Inter',
+                            height: 1.25,
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        Text(
+                          'Use the login provided for the AI² Safety Summit in Türkiye.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: Colors.grey[600],
+                            fontSize: 13,
+                            fontFamily: 'Inter',
+                            height: 1.4,
+                          ),
+                        ),
+                        const SizedBox(height: 28),
+                        TextField(
+                          controller: _emailController,
+                          keyboardType: TextInputType.emailAddress,
+                          textInputAction: TextInputAction.next,
+                          autofillHints: const [AutofillHints.username],
+                          enabled: !_signingIn,
+                          decoration: InputDecoration(
+                            labelText: 'Email',
+                            hintText: 'you@company.com',
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            filled: true,
+                            fillColor: Colors.grey[100],
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+                        TextField(
+                          controller: _passwordController,
+                          obscureText: _obscurePassword,
+                          textInputAction: TextInputAction.done,
+                          autofillHints: const [AutofillHints.password],
+                          enabled: !_signingIn,
+                          decoration: InputDecoration(
+                            labelText: 'Password',
+                            hintText: '••••••••',
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            filled: true,
+                            fillColor: Colors.grey[100],
+                            suffixIcon: IconButton(
+                              icon: Icon(
+                                _obscurePassword
+                                    ? Icons.visibility_outlined
+                                    : Icons.visibility_off_outlined,
+                                color: _navy,
+                              ),
+                              onPressed: () => setState(
+                                () => _obscurePassword = !_obscurePassword,
+                              ),
+                            ),
+                          ),
+                          onSubmitted: (_) => _handleLogin(),
+                        ),
+                        if (_gateError != null) ...[
+                          const SizedBox(height: 14),
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Colors.red[50],
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: Colors.red[200]!),
+                            ),
+                            child: Text(
+                              _gateError!,
+                              textAlign: TextAlign.center,
                               style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
+                                color: Colors.red[700],
+                                fontSize: 13,
                                 fontFamily: 'Inter',
                               ),
                             ),
-                            SizedBox(width: 8),
-                            Icon(Icons.arrow_forward, size: 16),
-                          ],
+                          ),
+                        ],
+                        const SizedBox(height: 22),
+                        ElevatedButton(
+                          onPressed: _signingIn ? null : _handleLogin,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: _gold,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            disabledBackgroundColor: Colors.grey[400],
+                          ),
+                          child: _signingIn
+                              ? const SizedBox(
+                                  height: 20,
+                                  width: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                      Colors.white,
+                                    ),
+                                  ),
+                                )
+                              : const Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Text(
+                                      'Login',
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                        fontFamily: 'Inter',
+                                      ),
+                                    ),
+                                    SizedBox(width: 8),
+                                    Icon(Icons.arrow_forward, size: 16),
+                                  ],
+                                ),
                         ),
+                      ],
+                    ),
+                  ),
                 ),
-              ],
+              ),
             ),
-          ),
-        ),
+          );
+        },
       ),
     );
   }
@@ -607,17 +675,36 @@ class _ClientPortalScreenState extends State<ClientPortalScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Padding(
-              padding: EdgeInsets.fromLTRB(16, 10, 16, 6),
-              child: Text(
-                'ACCESS',
-                style: TextStyle(
-                  color: _gold,
-                  fontSize: 11,
-                  letterSpacing: 1.4,
-                  fontWeight: FontWeight.w700,
-                  fontFamily: 'Inter',
-                ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 10, 8, 6),
+              child: Row(
+                children: [
+                  const Expanded(
+                    child: Text(
+                      'ACCESS',
+                      style: TextStyle(
+                        color: _gold,
+                        fontSize: 11,
+                        letterSpacing: 1.4,
+                        fontWeight: FontWeight.w700,
+                        fontFamily: 'Inter',
+                      ),
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: _clearSession,
+                    style: TextButton.styleFrom(
+                      foregroundColor: _navy,
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      minimumSize: Size.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                    child: const Text(
+                      'Sign out',
+                      style: TextStyle(fontSize: 12, fontFamily: 'Inter'),
+                    ),
+                  ),
+                ],
               ),
             ),
             SingleChildScrollView(
@@ -657,6 +744,14 @@ class _ClientPortalScreenState extends State<ClientPortalScreen> {
           ),
           const SizedBox(height: 16),
           dashBtn,
+          const SizedBox(height: 8),
+          TextButton(
+            onPressed: _clearSession,
+            child: const Text(
+              'Sign out',
+              style: TextStyle(color: _navy, fontFamily: 'Inter'),
+            ),
+          ),
         ],
       ),
     );
@@ -684,14 +779,6 @@ class _ClientPortalScreenState extends State<ClientPortalScreen> {
                       ),
                     ),
                     const SizedBox(height: 2),
-                    // Text(
-                    //   _embedHint ?? 'Sofema Aviation',
-                    //   style: TextStyle(
-                    //     color: Colors.grey[600],
-                    //     fontSize: 12,
-                    //     fontFamily: 'Inter',
-                    //   ),
-                    // ),
                   ],
                 ),
               ),

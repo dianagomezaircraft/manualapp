@@ -12,6 +12,7 @@ import '../widgets/app_bottom_navigation.dart';
 
 import 'search_screen.dart';
 import 'chapter_detail_screen.dart';
+import 'client_portal_screen.dart';
 import 'contact_details_screen.dart';
 import 'login_screen.dart';
 import 'section_detail_screen.dart';
@@ -1104,24 +1105,33 @@ class _CategoryScreenState extends State<CategoryScreen> {
     }
 
     if (chapters.isEmpty) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(20.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.folder_open, size: 64, color: Colors.grey[400]),
-              const SizedBox(height: 16),
-              Text(
-                isSuperAdmin && selectedAirlineId != null
-                    ? 'No chapters available for selected airline'
-                    : 'No chapters available',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                    fontSize: 16, color: Colors.grey[600], fontFamily: 'Inter'),
+      return RefreshIndicator(
+        onRefresh: _loadChapters,
+        color: const Color(0xFF123157),
+        child: ListView(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          children: [
+            _buildTrainingCard(),
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 24),
+              child: Column(
+                children: [
+                  Icon(Icons.folder_open, size: 48, color: Colors.grey[400]),
+                  const SizedBox(height: 12),
+                  Text(
+                    isSuperAdmin && selectedAirlineId != null
+                        ? 'No chapters available for selected airline'
+                        : 'No chapters available',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey[600],
+                        fontFamily: 'Inter'),
+                  ),
+                ],
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       );
     }
@@ -1131,17 +1141,96 @@ class _CategoryScreenState extends State<CategoryScreen> {
       color: const Color(0xFF123157),
       child: ListView.builder(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        itemCount: chapters.length,
+        // +1 for Training at the top (opens Sofema Client Portal)
+        itemCount: chapters.length + 1,
         itemBuilder: (context, index) {
-          final chapter = chapters[index];
+          if (index == 0) {
+            return _buildTrainingCard();
+          }
+          final chapter = chapters[index - 1];
           return _buildCategoryCard(
               chapter.title,
               'CHAPTER ${chapter.order - 1}',
               chapter.description,
               chapter.imageUrl,
               chapter.id,
-              index);
+              index - 1);
         },
+      ),
+    );
+  }
+
+  Widget _buildTrainingCard() {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 15),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade300, width: 1),
+        boxShadow: [
+          BoxShadow(
+              color: Colors.black.withOpacity(0.5),
+              blurRadius: 4,
+              offset: const Offset(0, 2))
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const ClientPortalScreen()),
+            );
+          },
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Training',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                          fontFamily: 'Inter',
+                          color: Colors.black87,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Sofema Aviation courses',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontFamily: 'Inter',
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  width: 80,
+                  height: 80,
+                  margin: const EdgeInsets.only(right: 16),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(8),
+                    color: const Color(0xFF123157).withOpacity(0.08),
+                  ),
+                  child: const Icon(
+                    Icons.school_outlined,
+                    color: Color(0xFF123157),
+                    size: 40,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
