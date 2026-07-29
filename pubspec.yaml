@@ -1,7 +1,7 @@
 name: arts_claims_app
 description: A Flutter application for ARTS Claims management.
 publish_to: 'none'
-version: 1.0.1+1
+version: 1.0.1+2
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
@@ -50,6 +50,7 @@ flutter:
     - assets/logoBlue.png
     - assets/iconLeft.png
     - assets/iconRight.png
+    - assets/Available Courses -Training 2 1.png
 
   fonts:
     - family: Inter

@@ -1219,12 +1219,19 @@ class _CategoryScreenState extends State<CategoryScreen> {
                   margin: const EdgeInsets.only(right: 16),
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(8),
-                    color: const Color(0xFF123157).withOpacity(0.08),
+                    color: Colors.transparent,
                   ),
-                  child: const Icon(
-                    Icons.school_outlined,
-                    color: Color(0xFF123157),
-                    size: 40,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: Image.asset(
+                      'assets/Available Courses -Training 2 1.png',
+                      fit: BoxFit.contain,
+                      errorBuilder: (context, error, stackTrace) => Container(
+                        color: Colors.grey[200],
+                        child: Icon(Icons.school_outlined,
+                            color: Colors.grey[400], size: 40),
+                      ),
+                    ),
                   ),
                 ),
               ],
