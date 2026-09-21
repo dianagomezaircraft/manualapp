@@ -12,6 +12,7 @@ import '../widgets/app_bottom_navigation.dart';
 
 import 'search_screen.dart';
 import 'chapter_detail_screen.dart';
+import 'lms_screen.dart';
 import 'client_portal_screen.dart';
 import 'contact_details_screen.dart';
 import 'login_screen.dart';
@@ -1112,6 +1113,7 @@ class _CategoryScreenState extends State<CategoryScreen> {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           children: [
             _buildTrainingCard(),
+            _buildMoodleCard(),
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 24),
               child: Column(
@@ -1141,26 +1143,80 @@ class _CategoryScreenState extends State<CategoryScreen> {
       color: const Color(0xFF123157),
       child: ListView.builder(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        // +1 for Training at the top (opens Sofema Client Portal)
-        itemCount: chapters.length + 1,
+        // +2 for Sofema Training and Moodle at the top
+        itemCount: chapters.length + 2,
         itemBuilder: (context, index) {
           if (index == 0) {
             return _buildTrainingCard();
           }
-          final chapter = chapters[index - 1];
+          if (index == 1) {
+            return _buildMoodleCard();
+          }
+          final chapter = chapters[index - 2];
           return _buildCategoryCard(
               chapter.title,
               'CHAPTER ${chapter.order - 1}',
               chapter.description,
               chapter.imageUrl,
               chapter.id,
-              index - 1);
+              index - 2);
         },
       ),
     );
   }
 
   Widget _buildTrainingCard() {
+    return _buildHomeLinkCard(
+      title: 'Training',
+      subtitle: 'Sofema Aviation courses',
+      trailing: ClipRRect(
+        borderRadius: BorderRadius.circular(8),
+        child: Image.asset(
+          'assets/Available Courses -Training 2 1.png',
+          fit: BoxFit.contain,
+          errorBuilder: (context, error, stackTrace) => Container(
+            color: Colors.grey[200],
+            child: Icon(Icons.school_outlined,
+                color: Colors.grey[400], size: 40),
+          ),
+        ),
+      ),
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const ClientPortalScreen()),
+        );
+      },
+    );
+  }
+
+  Widget _buildMoodleCard() {
+    return _buildHomeLinkCard(
+      title: 'Moodle',
+      subtitle: 'ARTS training platform',
+      trailing: Container(
+        color: Colors.grey[200],
+        child: const Icon(
+          Icons.menu_book_outlined,
+          color: Color(0xFF123157),
+          size: 40,
+        ),
+      ),
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const LmsScreen()),
+        );
+      },
+    );
+  }
+
+  Widget _buildHomeLinkCard({
+    required String title,
+    required String subtitle,
+    required Widget trailing,
+    required VoidCallback onTap,
+  }) {
     return Container(
       margin: const EdgeInsets.only(bottom: 15),
       decoration: BoxDecoration(
@@ -1178,12 +1234,7 @@ class _CategoryScreenState extends State<CategoryScreen> {
         color: Colors.transparent,
         child: InkWell(
           borderRadius: BorderRadius.circular(12),
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const ClientPortalScreen()),
-            );
-          },
+          onTap: onTap,
           child: Padding(
             padding: const EdgeInsets.all(20),
             child: Row(
@@ -1192,9 +1243,9 @@ class _CategoryScreenState extends State<CategoryScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        'Training',
-                        style: TextStyle(
+                      Text(
+                        title,
+                        style: const TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.bold,
                           fontFamily: 'Inter',
@@ -1203,7 +1254,7 @@ class _CategoryScreenState extends State<CategoryScreen> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Sofema Aviation courses',
+                        subtitle,
                         style: TextStyle(
                           fontSize: 13,
                           fontFamily: 'Inter',
@@ -1223,15 +1274,7 @@ class _CategoryScreenState extends State<CategoryScreen> {
                   ),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(8),
-                    child: Image.asset(
-                      'assets/Available Courses -Training 2 1.png',
-                      fit: BoxFit.contain,
-                      errorBuilder: (context, error, stackTrace) => Container(
-                        color: Colors.grey[200],
-                        child: Icon(Icons.school_outlined,
-                            color: Colors.grey[400], size: 40),
-                      ),
-                    ),
+                    child: trailing,
                   ),
                 ),
               ],
