@@ -34,12 +34,18 @@
   <style>
     /* Let HtmlElementView iframes receive click/scroll on Flutter web */
     flt-platform-view,
-    flt-platform-view-slot {
+    flt-platform-view-slot,
+    flt-platform-view-slot > * {
       pointer-events: auto !important;
     }
-    flt-platform-view iframe {
+    #moodle-sso-frame {
       pointer-events: auto !important;
       touch-action: auto !important;
+    }
+    flt-semantics,
+    flt-semantics-container,
+    flt-semantics-placeholder {
+      pointer-events: none !important;
     }
   </style>
 </head>

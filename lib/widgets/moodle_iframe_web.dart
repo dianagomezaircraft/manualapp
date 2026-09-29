@@ -1,12 +1,14 @@
-import 'dart:async';
 import 'dart:js_interop';
-import 'dart:ui_web' as ui_web;
 
 import 'package:flutter/widgets.dart';
 import 'package:web/web.dart' as web;
 
-/// In-page Moodle embed. Sets [url] on the iframe exactly once so the
-/// one-time auth_userkey is not consumed by a second load.
+/// Moodle embed for Flutter web.
+///
+/// [HtmlElementView] sits under the Flutter canvas, so clicks never reach
+/// Moodle, and the factory often builds the iframe twice (burns the SSO key).
+/// This widget appends **one** real iframe to `document.body`, positions it
+/// over the placeholder, and assigns [url] a single time.
 class MoodleIFrame extends StatefulWidget {
   final String url;
   final String title;
@@ -23,8 +25,9 @@ class MoodleIFrame extends StatefulWidget {
   State<MoodleIFrame> createState() => _MoodleIFrameState();
 }
 
-class _MoodleIFrameState extends State<MoodleIFrame> {
-  late final String _viewType;
+class _MoodleIFrameState extends State<MoodleIFrame>
+    with WidgetsBindingObserver {
+  final _anchorKey = GlobalKey();
   web.HTMLIFrameElement? _iframe;
   var _srcAssigned = false;
   var _blockedReported = false;
@@ -33,42 +36,43 @@ class _MoodleIFrameState extends State<MoodleIFrame> {
   @override
   void initState() {
     super.initState();
-    _viewType = 'moodle-iframe-${identityHashCode(this)}';
+    WidgetsBinding.instance.addObserver(this);
     _listenForCsp();
+    _iframe = _createIframe();
+    web.document.body?.append(_iframe!);
+  }
 
-    ui_web.platformViewRegistry.registerViewFactory(_viewType, (int viewId) {
-      final wrapper = web.HTMLDivElement()
-        ..style.width = '100%'
-        ..style.height = '100%'
-        ..style.border = 'none'
-        ..style.overflow = 'hidden'
-        ..style.setProperty('pointer-events', 'auto');
+  web.HTMLIFrameElement _createIframe() {
+    final iframe = web.HTMLIFrameElement()
+      ..id = 'moodle-sso-frame'
+      ..title = widget.title
+      ..src = 'about:blank'
+      ..allow = 'fullscreen; clipboard-read; clipboard-write'
+      ..referrerPolicy = 'no-referrer-when-downgrade'
+      ..setAttribute('allowfullscreen', 'true')
+      ..setAttribute('scrolling', 'yes');
 
-      final iframe = web.HTMLIFrameElement()
-        ..title = widget.title
-        ..src = 'about:blank'
-        ..style.border = 'none'
-        ..style.width = '100%'
-        ..style.height = '100%'
-        ..style.setProperty('pointer-events', 'auto')
-        ..style.setProperty('touch-action', 'auto')
-        ..allow = 'fullscreen; clipboard-read; clipboard-write'
-        ..referrerPolicy = 'no-referrer-when-downgrade'
-        ..setAttribute('allowfullscreen', 'true')
-        ..setAttribute('scrolling', 'yes');
+    iframe.style
+      ..setProperty('position', 'fixed')
+      ..setProperty('border', 'none')
+      ..setProperty('margin', '0')
+      ..setProperty('padding', '0')
+      ..setProperty('z-index', '100000')
+      ..setProperty('pointer-events', 'auto')
+      ..setProperty('touch-action', 'auto')
+      ..setProperty('background', '#ffffff')
+      ..setProperty('display', 'none');
 
-      iframe.onload = ((web.Event _) {
-        _detectChromeErrorPage(iframe);
-      }).toJS;
+    iframe.onload = ((web.Event _) {
+      _detectChromeErrorPage(iframe);
+    }).toJS;
 
-      wrapper.append(iframe);
-      _iframe = iframe;
-      return wrapper;
-    });
+    return iframe;
+  }
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      unawaited(_assignSrcOnce());
-    });
+  @override
+  void didChangeMetrics() {
+    _syncFrame();
   }
 
   void _listenForCsp() {
@@ -80,6 +84,42 @@ class _MoodleIFrameState extends State<MoodleIFrame> {
       }
     }).toJS;
     web.document.addEventListener('securitypolicyviolation', _cspListener!);
+  }
+
+  void _syncFrame() {
+    final iframe = _iframe;
+    if (!mounted || iframe == null) return;
+
+    final route = ModalRoute.of(context);
+    if (route != null && !route.isCurrent) {
+      iframe.style.setProperty('display', 'none');
+      return;
+    }
+
+    final box = _anchorKey.currentContext?.findRenderObject() as RenderBox?;
+    if (box == null || !box.hasSize) {
+      iframe.style.setProperty('display', 'none');
+      return;
+    }
+
+    final offset = box.localToGlobal(Offset.zero);
+    final size = box.size;
+    if (size.width <= 1 || size.height <= 1) {
+      iframe.style.setProperty('display', 'none');
+      return;
+    }
+
+    iframe.style
+      ..setProperty('display', 'block')
+      ..setProperty('left', '${offset.dx}px')
+      ..setProperty('top', '${offset.dy}px')
+      ..setProperty('width', '${size.width}px')
+      ..setProperty('height', '${size.height}px');
+
+    if (!_srcAssigned && widget.url.isNotEmpty) {
+      _srcAssigned = true;
+      iframe.src = widget.url;
+    }
   }
 
   void _detectChromeErrorPage(web.HTMLIFrameElement iframe) {
@@ -100,36 +140,21 @@ class _MoodleIFrameState extends State<MoodleIFrame> {
     widget.onBlocked?.call();
   }
 
-  Future<void> _assignSrcOnce() async {
-    if (_srcAssigned) return;
-
-    for (var i = 0; i < 50; i++) {
-      if (!mounted || _srcAssigned) return;
-      if (_iframe != null) break;
-      await Future<void>.delayed(const Duration(milliseconds: 50));
-    }
-
-    if (_srcAssigned || !mounted) return;
-    final iframe = _iframe;
-    if (iframe == null || widget.url.isEmpty) return;
-
-    _srcAssigned = true;
-    iframe.src = widget.url;
-  }
-
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     final listener = _cspListener;
     if (listener != null) {
       web.document.removeEventListener('securitypolicyviolation', listener);
     }
+    _iframe?.remove();
+    _iframe = null;
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox.expand(
-      child: HtmlElementView(viewType: _viewType),
-    );
+    WidgetsBinding.instance.addPostFrameCallback((_) => _syncFrame());
+    return SizedBox.expand(key: _anchorKey);
   }
 }

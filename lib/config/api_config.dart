@@ -13,13 +13,6 @@ class ApiConfig {
   // URL base que se usará
   static String get baseUrl => isProduction ? productionUrl : developmentUrl;
 
-  /// Sofema reverse proxy on the same Render service as the claims API.
-  /// Paths (from backend root JSON):
-  ///   health      → /healthz
-  ///   api         → /__api
-  ///   authBridge  → /__auth_bridge
-  ///   sessionBoot → /__session_boot
-  ///
   /// Override: `--dart-define=SOFEMA_PROXY=https://....onrender.com`
   static const String sofemaProxyProduction = String.fromEnvironment(
     'SOFEMA_PROXY',

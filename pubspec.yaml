@@ -1,7 +1,7 @@
 name: arts_claims_app
 description: A Flutter application for ARTS Claims management.
 publish_to: 'none'
-version: 1.0.2+2
+version: 1.0.2+3
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
@@ -24,6 +24,8 @@ dependencies:
   local_auth: ^2.3.0
   google_fonts: ^6.2.1
   webview_flutter: ^4.14.1
+  webview_flutter_android: ^4.7.0
+  webview_flutter_wkwebview: ^3.18.0
   web: ^1.1.1
 
 dev_dependencies:

@@ -1,6 +1,8 @@
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
+import 'package:webview_flutter_android/webview_flutter_android.dart';
+import 'package:webview_flutter_wkwebview/webview_flutter_wkwebview.dart';
 
 import '../services/lms_service.dart';
 import '../widgets/app_bottom_navigation.dart';
@@ -20,7 +22,6 @@ class _LmsScreenState extends State<LmsScreen> {
   final LmsService _lmsService = LmsService();
 
   var _opening = false;
-  var _userkeyLoaded = false;
   bool _isLoading = true;
   String? _errorMessage;
   String? _loginUrl;
@@ -43,7 +44,6 @@ class _LmsScreenState extends State<LmsScreen> {
       _errorMessage = null;
       _loginUrl = null;
       _controller = null;
-      _userkeyLoaded = false;
     });
 
     try {
@@ -65,9 +65,7 @@ class _LmsScreenState extends State<LmsScreen> {
       }
 
       final loginUrl = result['loginUrl'] as String;
-      // Never http.get(loginUrl) and never launchUrl — both consume the key.
-      // Load the URL once into the in-page iframe / WebView.
-      _embedLoginUrlOnce(loginUrl);
+      await _embedLoginUrlOnce(loginUrl);
     } catch (e) {
       if (!mounted) return;
       setState(() {
@@ -79,8 +77,9 @@ class _LmsScreenState extends State<LmsScreen> {
     }
   }
 
-  void _embedLoginUrlOnce(String loginUrl) {
+  Future<void> _embedLoginUrlOnce(String loginUrl) async {
     if (kIsWeb) {
+      if (!mounted) return;
       setState(() {
         _loginUrl = loginUrl;
         _isLoading = false;
@@ -88,20 +87,20 @@ class _LmsScreenState extends State<LmsScreen> {
       return;
     }
 
-    final controller = WebViewController()
+    late final PlatformWebViewControllerCreationParams params;
+    if (WebViewPlatform.instance is WebKitWebViewPlatform) {
+      params = WebKitWebViewControllerCreationParams(
+        allowsInlineMediaPlayback: true,
+      );
+    } else {
+      params = const PlatformWebViewControllerCreationParams();
+    }
+
+    final controller = WebViewController.fromPlatformCreationParams(params)
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setBackgroundColor(Colors.white)
       ..setNavigationDelegate(
         NavigationDelegate(
-          onNavigationRequest: (request) {
-            final uri = Uri.parse(request.url);
-            final isUserkey = uri.path.contains('/auth/userkey/login.php');
-            if (isUserkey && _userkeyLoaded) {
-              return NavigationDecision.prevent;
-            }
-            if (isUserkey) _userkeyLoaded = true;
-            return NavigationDecision.navigate;
-          },
           onPageFinished: (_) {
             if (mounted) setState(() => _isLoading = false);
           },
@@ -115,12 +114,24 @@ class _LmsScreenState extends State<LmsScreen> {
             });
           },
         ),
-      )
-      ..loadRequest(Uri.parse(loginUrl));
+      );
+
+    if (controller.platform is AndroidWebViewController) {
+      final android = controller.platform as AndroidWebViewController;
+      final cookies = WebViewCookieManager();
+      if (cookies.platform is AndroidWebViewCookieManager) {
+        await (cookies.platform as AndroidWebViewCookieManager)
+            .setAcceptThirdPartyCookies(android, true);
+      }
+    }
+
+    await controller.loadRequest(Uri.parse(loginUrl));
+    if (!mounted) return;
 
     setState(() {
       _loginUrl = loginUrl;
       _controller = controller;
+      _isLoading = false;
     });
   }
 
@@ -156,7 +167,7 @@ class _LmsScreenState extends State<LmsScreen> {
                       topRight: Radius.circular(20),
                     ),
                   ),
-                  clipBehavior: kIsWeb ? Clip.none : Clip.antiAlias,
+                  clipBehavior: Clip.none,
                   child: _buildBody(),
                 ),
               ),
@@ -198,18 +209,21 @@ class _LmsScreenState extends State<LmsScreen> {
     if (_errorMessage != null) return _buildErrorState();
     if (_loginUrl == null) return _buildLoadingState();
 
-    return Column(
+    return Stack(
       children: [
-        if (kIsWeb)
-          
-        Expanded(
-          child: Stack(
-            children: [
-              Positioned.fill(child: _buildEmbed()),
-              if (_isLoading) _buildLoadingState(),
-            ],
+        Positioned.fill(child: _buildEmbed()),
+        if (_isLoading)
+          const Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: IgnorePointer(
+              child: LinearProgressIndicator(
+                color: _navy,
+                backgroundColor: Color(0xFFeeeff0),
+              ),
+            ),
           ),
-        ),
       ],
     );
   }
@@ -237,25 +251,22 @@ class _LmsScreenState extends State<LmsScreen> {
   }
 
   Widget _buildLoadingState() {
-    return Container(
-      color: const Color(0xFFeeeff0),
-      child: const Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            CircularProgressIndicator(color: _navy),
-            SizedBox(height: 16),
-            Text(
-              'Opening Moodle...',
-              style: TextStyle(
-                color: _navy,
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                fontFamily: 'Inter',
-              ),
+    return const Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          CircularProgressIndicator(color: _navy),
+          SizedBox(height: 16),
+          Text(
+            'Opening Moodle...',
+            style: TextStyle(
+              color: _navy,
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              fontFamily: 'Inter',
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
